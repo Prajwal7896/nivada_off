@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVADA — Citizen Registration & Account Creation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for professional icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        civic: {
+                            dark: '#060913',
+                            cardBg: 'rgba(15, 23, 42, 0.82)',
+                            cardBorder: 'rgba(255, 255, 255, 0.08)',
+                            accentBlue: '#3b82f6',
+                            accentEmerald: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060913;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Subtle grid pattern background */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Glassmorphism card */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(10, 15, 30, 0.94) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sequential load animation */
+        @keyframes cinematicIn {
+            0% { opacity: 0; transform: translateY(25px) scale(0.97); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        .animate-stage-1 { animation: cinematicIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
+        .animate-stage-2 { animation: cinematicIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards; opacity: 0; }
+        .animate-stage-3 { animation: cinematicIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; opacity: 0; }
+
+        /* Button shine effect */
+        @keyframes btnShine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(200%) rotate(45deg); }
+        }
+        .btn-shine {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transform: translateX(-100%) rotate(45deg);
+            pointer-events: none;
+        }
+        .group:hover .btn-shine {
+            animation: btnShine 0.8s ease-in-out;
+        }
+
+        /* Floating node pulse */
+        @keyframes nodePulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+        }
+        .animate-node-pulse {
+            animation: nodePulse 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col justify-between selection:bg-blue-500 selection:text-white relative bg-grid-pattern">
+
+    <!-- Smart City Network Canvas Background -->
+    <canvas id="network-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-35"></canvas>
+
+    <!-- Ambient glowing lights -->
+    <div class="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-gradient-to-r from-blue-600/15 via-emerald-600/10 to-indigo-600/15 blur-[120px] pointer-events-none -z-10 rounded-full"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="w-full py-5 px-6 sm:px-12 flex items-center justify-between border-b border-white/5 bg-[#060913]/70 backdrop-blur-xl sticky top-0 z-50 animate-stage-1">
+        <div class="flex items-center space-x-3 group cursor-pointer" onclick="window.location.href='index.html'">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-600 p-[1px] shadow-lg shadow-blue-500/20">
+                <div class="w-full h-full bg-[#090d16] rounded-xl flex items-center justify-center text-white">
+                    <i class="fa-solid fa-cube text-blue-400"></i>
+                </div>
+            </div>
+            <div>
+                <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                    NIVADA
+                </span>
+                <span class="text-[9px] tracking-widest uppercase font-semibold text-blue-400">GovTech AI Network</span>
+            </div>
+        </div>
+
+        <a href="index.html" class="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-colors py-2 px-3 rounded-lg hover:bg-white/5">
+            <i class="fa-solid fa-arrow-left text-xs"></i>
+            <span>Back to Login Selection</span>
+        </a>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow flex items-center justify-center px-4 sm:px-8 py-10 relative z-10">
+        <div class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+
+            <!-- Left Visual / Info Section (5 Columns on Desktop) -->
+            <div class="lg:col-span-5 hidden lg:flex flex-col justify-center space-y-6 animate-stage-2 pr-4">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium w-fit">
+                    <i class="fa-solid fa-user-shield text-blue-400"></i>
+                    <span>Citizen Portal Registration</span>
+                </div>
+
+                <h1 class="text-3xl xl:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    Your Voice. Your City. <br>
+                    <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">Your NIVADA.</span>
+                </h1>
+
+                <p class="text-slate-300 text-sm xl:text-base leading-relaxed">
+                    Report civic issues instantly with AI assistance, track resolution progress in real-time, and collaborate with municipal authorities to build better communities.
+                </p>
+
+                <!-- Smart City Pipeline Visualizer -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden space-y-4 border border-white/10 mt-2">
+                    <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <span class="text-xs uppercase tracking-widest font-bold text-blue-400 block mb-2">Civic Workflow Pipeline</span>
+
+                    <div class="flex items-center justify-between text-xs text-slate-300 relative">
+                        <!-- Connecting line -->
+                        <div class="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[2px] bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 -z-0 opacity-40"></div>
+
+                        <div class="relative z-10 flex flex-col items-center bg-[#0a0f1e] p-2 rounded-xl border border-white/10">
+                            <i class="fa-solid fa-user text-blue-400 text-sm mb-1"></i>
+                            <span class="text-[10px] font-semibold">Citizen</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col items-center bg-[#0a0f1e] p-2 rounded-xl border border-white/10 animate-node-pulse">
+                            <i class="fa-solid fa-brain text-indigo-400 text-sm mb-1"></i>
+                            <span class="text-[10px] font-semibold">AI Triage</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col items-center bg-[#0a0f1e] p-2 rounded-xl border border-white/10">
+                            <i class="fa-solid fa-building-shield text-emerald-400 text-sm mb-1"></i>
+                            <span class="text-[10px] font-semibold">Authority</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col items-center bg-[#0a0f1e] p-2 rounded-xl border border-white/10">
+                            <i class="fa-solid fa-circle-check text-teal-400 text-sm mb-1"></i>
+                            <span class="text-[10px] font-semibold">Resolved</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6 pt-2 text-xs text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                        <span>Secure & Encrypted</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-blue-400"></i>
+                        <span>Instant AI Dispatch</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Registration Form Card (7 Columns on Desktop) -->
+            <div class="lg:col-span-7 w-full max-w-xl mx-auto animate-stage-3">
+                <div class="glass-card rounded-3xl p-6 sm:p-10 relative overflow-hidden">
+                    
+                    <!-- Top accent gradient border line -->
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500"></div>
+
+                    <!-- Header inside card -->
+                    <div class="mb-8 text-center sm:text-left">
+                        <div class="inline-flex sm:hidden items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 text-xs font-medium mb-3">
+                            <i class="fa-solid fa-user-shield text-blue-400"></i>
+                            <span>Citizen Account</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">Create Your NIVADA Account</h2>
+                        <p class="text-slate-300 text-sm">Join NIVADA and make your civic issues heard by municipal authorities.</p>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <form id="register-form" method="POST" action="/user/register" class="space-y-5">
+                        
+                        <!-- Full Name -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5" for="fullname">Full Name</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 pointer-events-none">
+                                    <i class="fa-regular fa-user text-sm"></i>
+                                </span>
+                                <input type="text" id="fullname" name="fullname" required 
+                                    class="w-full bg-[#070b17] border border-white/10 rounded-xl px-4 py-3 pl-10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                                    placeholder="Enter your full name">
+                            </div>
+                        </div>
+
+                        <!-- Email Address -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5" for="email">Email Address</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 pointer-events-none">
+                                    <i class="fa-regular fa-envelope text-sm"></i>
+                                </span>
+                                <input type="email" id="email" name="email" required 
+                                    class="w-full bg-[#070b17] border border-white/10 rounded-xl px-4 py-3 pl-10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                                    placeholder="Enter your email address">
+                            </div>
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5" for="phone">Phone Number</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 pointer-events-none">
+                                    <i class="fa-solid fa-phone text-sm"></i>
+                                </span>
+                                <input type="tel" id="phone" name="phone" required 
+                                    class="w-full bg-[#070b17] border border-white/10 rounded-xl px-4 py-3 pl-10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                                    placeholder="Enter your phone number">
+                            </div>
+                        </div>
+
+                        <!-- Password with Show/Hide & Strength Meter -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5" for="password">Password</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 pointer-events-none">
+                                    <i class="fa-solid fa-lock text-sm"></i>
+                                </span>
+                                <input type="password" id="password" name="password" required oninput="checkPasswordStrength(this.value)"
+                                    class="w-full bg-[#070b17] border border-white/10 rounded-xl px-4 py-3 pl-10 pr-10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                                    placeholder="Create a strong password">
+                                <button type="button" onclick="togglePassword('password', 'eye-icon-1')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                                    <i id="eye-icon-1" class="fa-regular fa-eye text-sm"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Password Strength Indicator -->
+                            <div class="mt-2 space-y-1">
+                                <div class="flex gap-1.5 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div id="strength-bar-1" class="w-1/3 bg-slate-700 transition-all duration-300 rounded-full"></div>
+                                    <div id="strength-bar-2" class="w-1/3 bg-slate-700 transition-all duration-300 rounded-full"></div>
+                                    <div id="strength-bar-3" class="w-1/3 bg-slate-700 transition-all duration-300 rounded-full"></div>
+                                </div>
+                                <div class="flex justify-between items-center text-[11px] text-slate-400">
+                                    <span id="strength-text">Password strength: <span class="text-slate-500 font-medium">None</span></span>
+                                    <span>Min. 8 chars with symbols</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5" for="confirm-password">Confirm Password</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 pointer-events-none">
+                                    <i class="fa-solid fa-shield-check text-sm"></i>
+                                </span>
+                                <input type="password" id="confirm-password" name="confirm_password" required 
+                                    class="w-full bg-[#070b17] border border-white/10 rounded-xl px-4 py-3 pl-10 pr-10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                                    placeholder="Confirm your password">
+                                <button type="button" onclick="togglePassword('confirm-password', 'eye-icon-2')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                                    <i id="eye-icon-2" class="fa-regular fa-eye text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="relative overflow-hidden w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 transition-all duration-300 active:scale-[0.98] group mt-2">
+                            <span class="btn-shine"></span>
+                            <span>Create Account</span>
+                            <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1.5 transition-transform duration-300"></i>
+                        </button>
+
+                        <!-- Already Registered Login Link -->
+                        <div class="text-center pt-3 border-t border-white/5">
+                            <span class="text-xs text-slate-400">Already registered? </span>
+                            <a href="/user/login" class="text-xs font-semibold text-blue-400 hover:text-blue-300 hover:underline transition-colors ml-1">Login here</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-6 px-6 border-t border-white/5 bg-[#060913]/80 text-center text-xs text-slate-500 backdrop-blur-md relative z-10">
+        <p>NIVADA &copy; 2026 | AI-Powered Civic Complaint Management</p>
+    </footer>
+
+    <!-- JavaScript Interactions & Animations -->
+    <script>
+        // 1. Smart City Network Background Animation
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let nodes = [];
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const nodeCount = Math.min(window.innerWidth > 768 ? 35 : 18, 40);
+        for (let i = 0; i < nodeCount; i++) {
+            nodes.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.35,
+                vy: (Math.random() - 0.5) * 0.35,
+                radius: Math.random() * 2 + 1
+            });
+        }
+
+        function animateNetwork() {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.12)';
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+
+            for (let i = 0; i < nodes.length; i++) {
+                let p = nodes[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (let j = i + 1; j < nodes.length; j++) {
+                    let p2 = nodes[j];
+                    let dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 150) {
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${0.12 * (1 - dist / 150)})`;
+                        ctx.lineWidth = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(animateNetwork);
+        }
+        animateNetwork();
+
+        // 2. Show/Hide Password Toggle
+        function togglePassword(fieldId, iconId) {
+            const passwordInput = document.getElementById(fieldId);
+            const eyeIcon = document.getElementById(iconId);
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // 3. Real-time Password Strength Analyzer
+        function checkPasswordStrength(password) {
+            const bar1 = document.getElementById('strength-bar-1');
+            const bar2 = document.getElementById('strength-bar-2');
+            const bar3 = document.getElementById('strength-bar-3');
+            const strengthText = document.getElementById('strength-text');
+
+            // Reset bars
+            bar1.className = 'w-1/3 bg-slate-700 transition-all duration-300 rounded-full';
+            bar2.className = 'w-1/3 bg-slate-700 transition-all duration-300 rounded-full';
+            bar3.className = 'w-1/3 bg-slate-700 transition-all duration-300 rounded-full';
+
+            if (!password) {
+                strengthText.innerHTML = 'Password strength: <span class="text-slate-500 font-medium">None</span>';
+                return;
+            }
+
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password) && /[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+
+            if (score === 1) {
+                bar1.className = 'w-1/3 bg-rose-500 transition-all duration-300 rounded-full shadow-sm shadow-rose-500/50';
+                strengthText.innerHTML = 'Password strength: <span class="text-rose-400 font-semibold">Weak</span>';
+            } else if (score === 2) {
+                bar1.className = 'w-1/3 bg-amber-500 transition-all duration-300 rounded-full';
+                bar2.className = 'w-1/3 bg-amber-500 transition-all duration-300 rounded-full shadow-sm shadow-amber-500/50';
+                strengthText.innerHTML = 'Password strength: <span class="text-amber-400 font-semibold">Moderate</span>';
+            } else if (score >= 3) {
+                bar1.className = 'w-1/3 bg-emerald-500 transition-all duration-300 rounded-full';
+                bar2.className = 'w-1/3 bg-emerald-500 transition-all duration-300 rounded-full';
+                bar3.className = 'w-1/3 bg-emerald-500 transition-all duration-300 rounded-full shadow-sm shadow-emerald-500/50';
+                strengthText.innerHTML = 'Password strength: <span class="text-emerald-400 font-semibold">Strong</span>';
+            }
+        }
+
+    </script>
+
+</body>
+</html>

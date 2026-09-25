@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report a Civic Issue — NIVADA AI Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nivada: {
+                            bg: '#090D16',
+                            card: '#111827',
+                            cardHover: '#162032',
+                            border: '#1E293B',
+                            borderFocus: '#3B82F6',
+                            accent: '#38BDF8',
+                            accentHover: '#0EA5E9',
+                            muted: '#94A3B8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 25px -5px rgba(56, 189, 248, 0.15)',
+                        'glow-lg': '0 0 35px -5px rgba(56, 189, 248, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.03); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #090D16; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-nivada-bg text-slate-100 font-sans min-h-screen relative overflow-x-hidden selection:bg-sky-500 selection:text-white">
+
+    <div class="absolute inset-0 bg-grid-pattern pointer-events-none z-0 opacity-60"></div>
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-[pulse-slow_8s_infinite]"></div>
+    <div class="absolute bottom-1/3 right-10 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none animate-[pulse-slow_10s_infinite]"></div>
+
+    <header class="sticky top-0 z-50 glass-panel border-b border-nivada-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand / Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-brain-circuit text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-wider bg-gradient-to-r from-white via-slate-100 to-sky-400 bg-clip-text text-transparent">NIVADA</span>
+                    <span class="block text-[10px] uppercase tracking-widest text-sky-400 font-medium">AI-Powered Civic Platform</span>
+                </div>
+            </div>
+
+            <!-- Nav Links (Desktop) -->
+            <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                <a href="/user/dashboard" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/55 transition-all duration-200">Dashboard</a>
+                <a href="/user/complaint" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-800/85 border border-sky-500/30 shadow-sm shadow-sky-500/10 transition-all duration-200">Submit Complaint</a>
+            </nav>
+
+            <!-- Right Actions: Notifications & User Dropdown -->
+            <div class="flex items-center space-x-4">
+                <!-- Notifications Bell -->
+                <button aria-label="Notifications" class="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-300 hover:text-white hover:border-sky-500/50 transition-all relative">
+                    <i class="fa-regular fa-bell text-sm"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                </button>
+
+                <!-- User Profile Dropdown Menu -->
+                <div class="relative">
+                    <button id="userDropdownBtn" aria-expanded="false" aria-haspopup="true" class="flex items-center space-x-3 p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/60 hover:border-sky-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400">
+                        <div id="navUserAvatar" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                            PS
+                        </div>
+                        <span id="navUserName" class="hidden sm:inline-block text-sm font-medium text-slate-200 pr-1">Prajwal Sankpal</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-slate-400 pr-1 transition-transform duration-200" id="dropdownArrow"></i>
+                    </button>
+
+                    <!-- Dropdown Content -->
+                    <div id="userDropdownMenu" class="absolute right-0 mt-2 w-56 rounded-2xl glass-panel shadow-2xl border border-slate-700/80 py-2 hidden z-50 transform origin-top-right transition-all duration-200">
+                        <div class="px-4 py-3 border-b border-slate-700/60">
+                            <p class="text-xs text-slate-400">Signed in as</p>
+                            <p id="dropdownUserEmail" class="text-sm font-semibold text-white truncate">prajwal.sankpal@nivada.gov</p>
+                        </div>
+                        <a href="/user/profile" class="flex items-center px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors">
+                            <i class="fa-solid fa-user-gear w-5 mr-2"></i> My Profile
+                        </a>
+                        <a href="/user/dashboard" class="flex items-center px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors">
+                            <i class="fa-solid fa-chart-pie w-5 mr-2"></i> Dashboard
+                        </a>
+                        <div class="border-t border-slate-700/60 my-1"></div>
+                        <button onclick="handleLogout()" class="w-full text-left flex items-center px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors">
+                            <i class="fa-solid fa-right-from-bracket w-5 mr-2"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button id="mobileMenuBtn" aria-label="Toggle Menu" class="md:hidden p-2 rounded-lg bg-slate-800/60 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Nav Menu -->
+        <div id="mobileMenu" class="md:hidden hidden border-t border-slate-800 px-4 pt-3 pb-4 space-y-2 glass-panel">
+            <a href="/user/dashboard" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">Dashboard</a>
+            <a href="/user/complaint" class="block px-3 py-2 rounded-lg text-sm font-medium text-white bg-slate-800">Submit Complaint</a>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 relative z-10">
+        
+        <!-- Page Header & Breadcrumb -->
+        <div class="mb-10 text-center opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.1s;">
+            <nav class="text-xs text-slate-400 mb-3 flex items-center justify-center space-x-2">
+                <a href="/user/dashboard" class="hover:text-sky-400 transition-colors">Dashboard</a>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <span class="text-sky-400 font-medium">Submit Complaint</span>
+            </nav>
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
+                Report a Civic Issue
+            </h1>
+            <p class="text-sm sm:text-base text-slate-400 max-w-xl mx-auto">
+                Help improve your community with NIVADA. Describe the problem and local authorities will take action.
+            </p>
+            <div class="mt-3 inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-medium">
+                <i class="fa-solid fa-sparkles text-sky-400"></i>
+                <span>Analyzed & routed automatically by NIVADA AI</span>
+            </div>
+        </div>
+
+        <!-- Main Submission Card -->
+        <div id="submissionCardContainer" class="glass-panel rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.2s;">
+            <div class="absolute -right-20 -top-20 w-60 h-60 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <form id="complaintForm" onsubmit="handleComplaintSubmit(event)" class="space-y-8 relative z-10">
+                
+                <!-- Section 1: Describe the Problem -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label for="descriptionInput" class="block text-sm font-bold text-white flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs font-bold">1</span>
+                            <span>Describe the Problem <span class="text-sky-400">*</span></span>
+                        </label>
+                        <span id="charCounter" class="text-xs text-slate-400 font-mono">0 / 2000</span>
+                    </div>
+                    <p class="text-xs text-slate-400 pl-8">Example: A large pothole has developed near the main road and creates a safety risk for vehicles.</p>
+                    
+                    <div class="pt-1">
+                        <textarea id="descriptionInput" name="description" rows="5" maxlength="2000" required
+                            oninput="validateDescription(this.value)"
+                            class="w-full p-4 rounded-2xl bg-slate-900/90 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600 resize-y"
+                            placeholder="Describe the civic issue in detail..."></textarea>
+                        <p id="descriptionError" class="text-xs text-rose-400 hidden mt-1.5 pl-1 flex items-center space-x-1">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span id="descErrorText">Please describe the civic issue.</span>
+                        </p>
+                        <p id="descriptionSuccess" class="text-xs text-emerald-400 hidden mt-1.5 pl-1 flex items-center space-x-1">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Description looks good</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section 2: Optional Image Upload -->
+                <div class="space-y-2 pt-2 border-t border-slate-800/80">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-bold text-white flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs font-bold">2</span>
+                            <span>Add Image <span class="text-xs font-normal text-slate-400">(Optional)</span></span>
+                        </label>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
+                    </div>
+                    <p class="text-xs text-slate-400 pl-8">A photo helps authorities understand the issue more clearly (JPG, JPEG, PNG, WebP up to 5MB).</p>
+
+                    <div class="pt-2 pl-0 sm:pl-8">
+                        <!-- Dropzone / File Picker -->
+                        <div id="dropZone" onclick="triggerImageSelect()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
+                            class="border-2 border-dashed border-slate-700 hover:border-sky-500/60 rounded-2xl p-6 text-center bg-slate-900/50 hover:bg-slate-900/80 transition-all cursor-pointer group">
+                            <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" onchange="handleImageSelected(event)">
+                            <div id="uploadPlaceholder" class="space-y-2">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform shadow-lg">
+                                    <i class="fa-solid fa-camera text-xl"></i>
+                                </div>
+                                <p class="text-sm font-semibold text-slate-200">Drag & drop or <span class="text-sky-400 underline underline-offset-2">browse</span> to upload</p>
+                                <p class="text-xs text-slate-500">JPG, JPEG, PNG, WebP (Max 5 MB)</p>
+                            </div>
+
+                            <!-- Image Preview Area -->
+                            <div id="imagePreviewContainer" class="hidden space-y-3">
+                                <div class="relative w-full max-w-xs mx-auto h-40 rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-slate-950">
+                                    <img id="previewImg" src="" alt="Civic Issue Preview" class="w-full h-full object-cover">
+                                    <button type="button" onclick="removeSelectedImage(event)" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-colors" title="Remove Image">
+                                        <i class="fa-solid fa-xmark text-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-center space-x-4 text-xs text-slate-300">
+                                    <span id="fileNameDisplay" class="font-medium truncate max-w-[200px]">issue_photo.jpg</span>
+                                    <span id="fileSizeDisplay" class="text-slate-500">1.8 MB</span>
+                                    <button type="button" onclick="removeSelectedImage(event)" class="text-rose-400 hover:text-rose-300 font-semibold underline">Remove Image</button>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="imageError" class="text-xs text-rose-400 hidden mt-1.5 pl-1 flex items-center space-x-1">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>Please upload a JPG, PNG, JPEG, or WebP image under 5 MB.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section 3: Complaint Location -->
+                <div class="space-y-3 pt-2 border-t border-slate-800/80">
+                    <div class="flex items-center justify-between">
+                        <label for="addressInput" class="block text-sm font-bold text-white flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs font-bold">3</span>
+                            <span>Complaint Location <span class="text-sky-400">*</span></span>
+                        </label>
+                        <button type="button" onclick="fetchCurrentLocation()" id="geoBtn"
+                            class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-all flex items-center space-x-2 shadow-sm">
+                            <i id="geoIcon" class="fa-solid fa-location-crosshairs"></i>
+                            <span id="geoBtnText">Use My Current Location</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 pl-8">Where is the civic issue located? Enter the address or use geolocation.</p>
+
+                    <div class="pl-0 sm:pl-8 space-y-3">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <i class="fa-solid fa-location-dot text-sm text-sky-400"></i>
+                            </div>
+                            <input type="text" id="addressInput" name="address" required oninput="validateLocation(this.value)"
+                                class="w-full pl-10 pr-4 py-3.5 rounded-2xl bg-slate-900/90 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+                                placeholder="Enter address or landmark (e.g., Near Main Road, Akurdi, Pune)">
+                        </div>
+                        <p id="addressError" class="text-xs text-rose-400 hidden mt-1 pl-1 flex items-center space-x-1">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>Please provide the location of the issue.</span>
+                        </p>
+
+                        <!-- Compact Location Confirmation & Map Preview Component -->
+                        <div id="locationConfirmationCard" class="hidden rounded-2xl bg-slate-900/80 border border-slate-800 p-4 space-y-3">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mt-0.5">
+                                        <i class="fa-solid fa-check text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs uppercase tracking-wider text-emerald-400 font-semibold block">Location Selected</span>
+                                        <p id="confirmedAddressText" class="text-sm font-medium text-white mt-0.5">Akurdi, Pune, Maharashtra</p>
+                                        <p id="coordinatesText" class="text-xs text-slate-500 font-mono mt-1">Latitude: 18.6512° N, Longitude: 73.7684° E</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">GPS Verified</span>
+                            </div>
+
+                            <!-- Mini Map Preview Box -->
+                            <div class="w-full h-28 rounded-xl bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center">
+                                <!-- Abstract map grid simulation -->
+                                <div class="absolute inset-0 bg-grid-pattern opacity-40"></div>
+                                <div class="absolute inset-0 bg-gradient-to-tr from-sky-950/40 to-transparent"></div>
+                                <div class="relative z-10 flex flex-col items-center space-y-1">
+                                    <div class="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/60 flex items-center justify-center text-sky-400 animate-bounce shadow-lg shadow-sky-500/30">
+                                        <i class="fa-solid fa-location-pin text-sm"></i>
+                                    </div>
+                                    <span class="text-[11px] font-semibold text-slate-300 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-700">Complaint Location Pin</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Submission Summary -->
+                <div class="pt-2 border-t border-slate-800/80">
+                    <div class="rounded-2xl bg-slate-900/60 border border-slate-800/80 p-4 sm:p-5">
+                        <h3 class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-check text-sky-400"></i>
+                            <span>Complaint Ready to Submit</span>
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                            <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span id="summaryDescStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
+                                <span class="text-slate-300 font-medium">Description: <span id="sumDescText" class="text-slate-500 font-normal">Pending</span></span>
+                            </div>
+                            <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span id="summaryImgStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                <span class="text-slate-300 font-medium">Image: <span id="sumImgText" class="text-slate-500 font-normal">Not added</span></span>
+                            </div>
+                            <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span id="summaryLocStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
+                                <span class="text-slate-300 font-medium">Location: <span id="sumLocText" class="text-slate-500 font-normal">Required</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit" id="submitComplaintBtn"
+                        class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-blue-600 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-base shadow-xl shadow-sky-500/20 transition-all duration-300 flex items-center justify-center space-x-3 group">
+                        <span id="submitBtnText">Submit Complaint</span>
+                        <i id="submitBtnArrow" class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1.5 transition-transform"></i>
+                        <i id="submitBtnSpinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Success Modal / Screen Container (Initially Hidden) -->
+        <div id="successScreenContainer" class="hidden glass-panel rounded-3xl p-8 sm:p-12 text-center shadow-2xl relative overflow-hidden opacity-0 transition-all duration-500">
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+            
+            <div class="max-w-md mx-auto space-y-6 relative z-10">
+                <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-600 to-sky-400 mx-auto flex items-center justify-center shadow-2xl shadow-emerald-500/20 animate-bounce">
+                    <i class="fa-solid fa-check text-white text-3xl"></i>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-xs uppercase tracking-widest text-emerald-400 font-bold block">Successfully Registered</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Complaint Submitted</h2>
+                    <p class="text-sm text-slate-300">Your complaint has been successfully registered with NIVADA and queued for AI classification.</p>
+                </div>
+
+                <!-- Complaint Number Box -->
+                <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-1">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Assigned Complaint Number</span>
+                    <span id="generatedComplaintNumber" class="text-xl sm:text-2xl font-mono font-bold text-sky-400 tracking-wider">NVD-2026-000123</span>
+                </div>
+
+                <!-- Processing Sequence Indicator -->
+                <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-left space-y-2 text-xs text-slate-300">
+                    <div class="flex items-center space-x-2 text-emerald-400">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Complaint Received & Logged</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-emerald-400">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>NIVADA AI Classification & Priority Assignment</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-sky-400 animate-pulse">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                        <span>Routing to Appropriate Municipal Department</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                    <button onclick="resetSubmissionForm()" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 transition-all border border-slate-700">
+                        Submit Another Complaint
+                    </button>
+                    <button onclick="handleViewComplaint()" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center space-x-2">
+                        <span>View Complaint Details</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+    <script>
+        let complaintState = {
+            description: "",
+            imageFile: null,
+            address: "",
+            latitude: null,
+            longitude: null
+        };
+
+        let submittedComplaint = null;
+
+        window.addEventListener("DOMContentLoaded", () => {
+            setupDropdown();
+            loadUserHeader();
+        });
+
+        async function loadUserHeader() {
+            try {
+                const response = await fetch("/api/user/profile");
+
+                if (!response.ok) {
+                    window.location.href = "/user/login";
+                    return;
+                }
+
+                const user = await response.json();
+
+                const username = user.username || "User";
+                const email = user.email || "";
+
+                document.getElementById("navUserName").textContent = username;
+                document.getElementById("dropdownUserEmail").textContent = email;
+
+                const initials = username
+                    .trim()
+                    .split(/\s+/)
+                    .map(n => n[0])
+                    .join("")
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                document.getElementById("navUserAvatar").textContent =
+                    initials || "U";
+
+            } catch (error) {
+                console.error("Failed to load user:", error);
+            }
+        }
+
+        function setupDropdown() {
+            const btn = document.getElementById("userDropdownBtn");
+            const menu = document.getElementById("userDropdownMenu");
+            const arrow = document.getElementById("dropdownArrow");
+
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+
+                const hidden = menu.classList.contains("hidden");
+
+                if (hidden) {
+                    menu.classList.remove("hidden");
+                    arrow.style.transform = "rotate(180deg)";
+                    btn.setAttribute("aria-expanded", "true");
+                } else {
+                    menu.classList.add("hidden");
+                    arrow.style.transform = "rotate(0deg)";
+                    btn.setAttribute("aria-expanded", "false");
+                }
+            });
+
+            menu.addEventListener("click", (e) => {
+                e.stopPropagation();
+            });
+
+            window.addEventListener("click", () => {
+                menu.classList.add("hidden");
+                arrow.style.transform = "rotate(0deg)";
+                btn.setAttribute("aria-expanded", "false");
+            });
+
+            const mobileBtn =
+                document.getElementById("mobileMenuBtn");
+
+            const mobileMenu =
+                document.getElementById("mobileMenu");
+
+            mobileBtn.addEventListener("click", () => {
+                mobileMenu.classList.toggle("hidden");
+            });
+        }
+
+
+        function validateDescription(value) {
+            const trimmed = value.trim();
+
+            complaintState.description = trimmed;
+
+            const counter =
+                document.getElementById("charCounter");
+
+            const error =
+                document.getElementById("descriptionError");
+
+            const success =
+                document.getElementById("descriptionSuccess");
+
+            const input =
+                document.getElementById("descriptionInput");
+
+            const dot =
+                document.getElementById("summaryDescStatus");
+
+            const text =
+                document.getElementById("sumDescText");
+
+            counter.textContent =
+                `${value.length} / 2000`;
+
+            if (trimmed.length === 0) {
+
+                error.classList.add("hidden");
+                success.classList.add("hidden");
+
+                input.classList.remove(
+                    "border-rose-500",
+                    "border-emerald-500"
+                );
+
+                dot.className =
+                    "w-2 h-2 rounded-full bg-slate-600";
+
+                text.textContent = "Pending";
+
+                text.className =
+                    "text-slate-500 font-normal";
+
+                return;
+            }
+
+            if (trimmed.length < 10) {
+
+                error.classList.remove("hidden");
+                success.classList.add("hidden");
+
+                input.classList.add("border-rose-500");
+                input.classList.remove("border-emerald-500");
+
+                document.getElementById(
+                    "descErrorText"
+                ).textContent =
+                    "Please provide more details about the issue.";
+
+                dot.className =
+                    "w-2 h-2 rounded-full bg-rose-500";
+
+                text.textContent = "Too short";
+
+                text.className =
+                    "text-rose-400 font-medium";
+
+                return;
+            }
+
+            error.classList.add("hidden");
+            success.classList.remove("hidden");
+
+            input.classList.remove("border-rose-500");
+            input.classList.add("border-emerald-500");
+
+            dot.className =
+                "w-2 h-2 rounded-full bg-emerald-500";
+
+            text.textContent = "Added";
+
+            text.className =
+                "text-emerald-400 font-medium";
+        }
+
+
+        function triggerImageSelect() {
+            document.getElementById("imageInput").click();
+        }
+
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            event.currentTarget.classList.add(
+                "border-sky-500",
+                "bg-slate-900/90"
+            );
+        }
+
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            event.currentTarget.classList.remove(
+                "border-sky-500",
+                "bg-slate-900/90"
+            );
+        }
+
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            event.currentTarget.classList.remove(
+                "border-sky-500",
+                "bg-slate-900/90"
+            );
+
+            const files = event.dataTransfer.files;
+
+            if (files.length > 0) {
+                processImageFile(files[0]);
+            }
+        }
+
+
+        function handleImageSelected(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                processImageFile(file);
+            }
+        }
+
+
+        function processImageFile(file) {
+
+            const error =
+                document.getElementById("imageError");
+
+            const dot =
+                document.getElementById("summaryImgStatus");
+
+            const text =
+                document.getElementById("sumImgText");
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+
+                error.classList.remove("hidden");
+
+                error.querySelector("span").textContent =
+                    "Please upload a JPG, PNG, JPEG, or WebP image.";
+
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+
+                error.classList.remove("hidden");
+
+                error.querySelector("span").textContent =
+                    "Image size exceeds 5 MB limit.";
+
+                return;
+            }
+
+            error.classList.add("hidden");
+
+            complaintState.imageFile = file;
+
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+
+                document.getElementById(
+                    "previewImg"
+                ).src = event.target.result;
+
+                document.getElementById(
+                    "uploadPlaceholder"
+                ).classList.add("hidden");
+
+                document.getElementById(
+                    "imagePreviewContainer"
+                ).classList.remove("hidden");
+
+                document.getElementById(
+                    "fileNameDisplay"
+                ).textContent = file.name;
+
+                document.getElementById(
+                    "fileSizeDisplay"
+                ).textContent =
+                    (file.size / (1024 * 1024)).toFixed(1) +
+                    " MB";
+
+                dot.className =
+                    "w-2 h-2 rounded-full bg-emerald-500";
+
+                text.textContent = "Attached";
+
+                text.className =
+                    "text-emerald-400 font-medium";
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+
+        function removeSelectedImage(event) {
+
+            if (event) {
+                event.stopPropagation();
+            }
+
+            complaintState.imageFile = null;
+
+            document.getElementById(
+                "imageInput"
+            ).value = "";
+
+            document.getElementById(
+                "previewImg"
+            ).src = "";
+
+            document.getElementById(
+                "imagePreviewContainer"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "uploadPlaceholder"
+            ).classList.remove("hidden");
+
+            const dot =
+                document.getElementById("summaryImgStatus");
+
+            const text =
+                document.getElementById("sumImgText");
+
+            dot.className =
+                "w-2 h-2 rounded-full bg-slate-500";
+
+            text.textContent = "Not added";
+
+            text.className =
+                "text-slate-500 font-normal";
+        }
+
+
+        function validateLocation(value) {
+
+            const trimmed = value.trim();
+
+            complaintState.address = trimmed;
+
+            const error =
+                document.getElementById("addressError");
+
+            const input =
+                document.getElementById("addressInput");
+
+            const card =
+                document.getElementById(
+                    "locationConfirmationCard"
+                );
+
+            const dot =
+                document.getElementById("summaryLocStatus");
+
+            const text =
+                document.getElementById("sumLocText");
+
+            if (!trimmed) {
+
+                error.classList.remove("hidden");
+
+                input.classList.add("border-rose-500");
+
+                input.classList.remove(
+                    "border-emerald-500"
+                );
+
+                card.classList.add("hidden");
+
+                dot.className =
+                    "w-2 h-2 rounded-full bg-slate-600";
+
+                text.textContent = "Required";
+
+                text.className =
+                    "text-slate-500 font-normal";
+
+                return;
+            }
+
+            error.classList.add("hidden");
+
+            input.classList.remove(
+                "border-rose-500"
+            );
+
+            input.classList.add(
+                "border-emerald-500"
+            );
+
+            card.classList.remove("hidden");
+
+            document.getElementById(
+                "confirmedAddressText"
+            ).textContent = trimmed;
+
+            dot.className =
+                "w-2 h-2 rounded-full bg-emerald-500";
+
+            text.textContent = "Selected";
+
+            text.className =
+                "text-emerald-400 font-medium";
+
+            if (
+                complaintState.latitude !== null &&
+                complaintState.longitude !== null
+            ) {
+                document.getElementById(
+                    "coordinatesText"
+                ).textContent =
+                    `Latitude: ${complaintState.latitude.toFixed(6)}° N, Longitude: ${complaintState.longitude.toFixed(6)}° E`;
+            }
+        }
+
+
+        function fetchCurrentLocation() {
+
+            const btnText =
+                document.getElementById("geoBtnText");
+
+            const icon =
+                document.getElementById("geoIcon");
+
+            const input =
+                document.getElementById("addressInput");
+
+            btnText.textContent =
+                "Detecting location...";
+
+            icon.className =
+                "fa-solid fa-circle-notch fa-spin text-sky-400";
+
+            if (!navigator.geolocation) {
+
+                btnText.textContent =
+                    "Use My Current Location";
+
+                icon.className =
+                    "fa-solid fa-location-crosshairs";
+
+                showToast(
+                    "Not Supported",
+                    "Geolocation is not supported by your browser.",
+                    "error"
+                );
+
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+
+                async (position) => {
+
+                    const lat =
+                        position.coords.latitude;
+
+                    const lng =
+                        position.coords.longitude;
+
+                    complaintState.latitude = lat;
+                    complaintState.longitude = lng;
+
+                    const address =
+                        `Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`;
+
+                    input.value = address;
+
+                    validateLocation(address);
+
+                    document.getElementById(
+                        "coordinatesText"
+                    ).textContent =
+                        `Latitude: ${lat.toFixed(6)}° N, Longitude: ${lng.toFixed(6)}° E`;
+
+                    btnText.textContent =
+                        "Use My Current Location";
+
+                    icon.className =
+                        "fa-solid fa-location-crosshairs";
+
+                    showToast(
+                        "Location Detected",
+                        "GPS coordinates successfully retrieved.",
+                        "success"
+                    );
+                },
+
+                () => {
+
+                    btnText.textContent =
+                        "Use My Current Location";
+
+                    icon.className =
+                        "fa-solid fa-location-crosshairs";
+
+                    showToast(
+                        "Geolocation Error",
+                        "Unable to retrieve your location. Please enter manually.",
+                        "error"
+                    );
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+
+        async function handleComplaintSubmit(event) {
+
+            event.preventDefault();
+
+            const description =
+                document.getElementById(
+                    "descriptionInput"
+                ).value.trim();
+
+            const address =
+                document.getElementById(
+                    "addressInput"
+                ).value.trim();
+
+            let valid = true;
+
+            if (description.length < 10) {
+
+                document.getElementById(
+                    "descriptionError"
+                ).classList.remove("hidden");
+
+                document.getElementById(
+                    "descriptionInput"
+                ).classList.add("border-rose-500");
+
+                valid = false;
+            }
+
+            if (!address) {
+
+                document.getElementById(
+                    "addressError"
+                ).classList.remove("hidden");
+
+                document.getElementById(
+                    "addressInput"
+                ).classList.add("border-rose-500");
+
+                valid = false;
+            }
+
+            if (!valid) {
+
+                showToast(
+                    "Validation Error",
+                    "Please complete all required fields.",
+                    "error"
+                );
+
+                return;
+            }
+
+            const submitBtn =
+                document.getElementById(
+                    "submitComplaintBtn"
+                );
+
+            const submitText =
+                document.getElementById(
+                    "submitBtnText"
+                );
+
+            const submitArrow =
+                document.getElementById(
+                    "submitBtnArrow"
+                );
+
+            const submitSpinner =
+                document.getElementById(
+                    "submitBtnSpinner"
+                );
+
+            submitBtn.disabled = true;
+
+            submitText.textContent =
+                "Analyzing & Submitting...";
+
+            submitArrow.classList.add("hidden");
+
+            submitSpinner.classList.remove("hidden");
+
+            try {
+
+                const formData = new FormData();
+
+                formData.append(
+                    "description",
+                    description
+                );
+
+                formData.append(
+                    "address",
+                    address
+                );
+
+                if (
+                    complaintState.latitude !== null
+                ) {
+                    formData.append(
+                        "latitude",
+                        complaintState.latitude
+                    );
+                }
+
+                if (
+                    complaintState.longitude !== null
+                ) {
+                    formData.append(
+                        "longitude",
+                        complaintState.longitude
+                    );
+                }
+
+                if (complaintState.imageFile) {
+
+                    formData.append(
+                        "image",
+                        complaintState.imageFile
+                    );
+                }
+
+                const response = await fetch(
+                    "/api/complaints",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+                let result;
+
+                try {
+                    result = await response.json();
+                } catch {
+                    throw new Error(
+                        "Invalid response from server."
+                    );
+                }
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        result.detail ||
+                        "Complaint submission failed."
+                    );
+                }
+
+                submittedComplaint = result;
+
+                document.getElementById(
+                    "generatedComplaintNumber"
+                ).textContent =
+                    result.complaint_number;
+
+                document.getElementById(
+                    "submissionCardContainer"
+                ).classList.add("hidden");
+
+                const success =
+                    document.getElementById(
+                        "successScreenContainer"
+                    );
+
+                success.classList.remove("hidden");
+
+                setTimeout(() => {
+                    success.classList.add(
+                        "opacity-100"
+                    );
+                }, 20);
+
+                const processing =
+                    success.querySelector(
+                        ".fa-circle-notch"
+                    );
+
+                if (processing) {
+                    processing.className =
+                        "fa-solid fa-circle-check";
+                }
+
+                showToast(
+                    "Complaint Submitted",
+                    `Classified as ${result.category}.`,
+                    "success"
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Complaint submission error:",
+                    error
+                );
+
+                showToast(
+                    "Submission Failed",
+                    error.message ||
+                    "Unable to submit complaint.",
+                    "error"
+                );
+
+            } finally {
+
+                submitBtn.disabled = false;
+
+                submitText.textContent =
+                    "Submit Complaint";
+
+                submitSpinner.classList.add(
+                    "hidden"
+                );
+
+                submitArrow.classList.remove(
+                    "hidden"
+                );
+            }
+        }
+
+
+        function resetSubmissionForm() {
+
+            document.getElementById(
+                "complaintForm"
+            ).reset();
+
+            complaintState = {
+                description: "",
+                imageFile: null,
+                address: "",
+                latitude: null,
+                longitude: null
+            };
+
+            submittedComplaint = null;
+
+            document.getElementById(
+                "charCounter"
+            ).textContent = "0 / 2000";
+
+            document.getElementById(
+                "descriptionSuccess"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "descriptionError"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "descriptionInput"
+            ).classList.remove(
+                "border-emerald-500",
+                "border-rose-500"
+            );
+
+            removeSelectedImage();
+
+            document.getElementById(
+                "locationConfirmationCard"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "addressError"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "addressInput"
+            ).classList.remove(
+                "border-emerald-500",
+                "border-rose-500"
+            );
+
+            document.getElementById(
+                "summaryDescStatus"
+            ).className =
+                "w-2 h-2 rounded-full bg-slate-600";
+
+            document.getElementById(
+                "sumDescText"
+            ).textContent = "Pending";
+
+            document.getElementById(
+                "sumDescText"
+            ).className =
+                "text-slate-500 font-normal";
+
+            document.getElementById(
+                "summaryImgStatus"
+            ).className =
+                "w-2 h-2 rounded-full bg-slate-500";
+
+            document.getElementById(
+                "sumImgText"
+            ).textContent = "Not added";
+
+            document.getElementById(
+                "sumImgText"
+            ).className =
+                "text-slate-500 font-normal";
+
+            document.getElementById(
+                "summaryLocStatus"
+            ).className =
+                "w-2 h-2 rounded-full bg-slate-600";
+
+            document.getElementById(
+                "sumLocText"
+            ).textContent = "Required";
+
+            document.getElementById(
+                "sumLocText"
+            ).className =
+                "text-slate-500 font-normal";
+
+            const success =
+                document.getElementById(
+                    "successScreenContainer"
+                );
+
+            success.classList.add("hidden");
+            success.classList.remove("opacity-100");
+
+            document.getElementById(
+                "submissionCardContainer"
+            ).classList.remove("hidden");
+        }
+
+
+        function handleViewComplaint() {
+
+            if (
+                submittedComplaint &&
+                submittedComplaint.complaint_id
+            ) {
+
+                window.location.href =
+                    `/user/dashboard?complaint=${submittedComplaint.complaint_id}`;
+
+            } else {
+
+                window.location.href =
+                    "/user/dashboard";
+            }
+        }
+
+
+        function showToast(
+            title,
+            message,
+            type = "success"
+        ) {
+
+            const container =
+                document.getElementById(
+                    "toastContainer"
+                );
+
+            const toast =
+                document.createElement("div");
+
+            const borderColor =
+                type === "success"
+                    ? "border-sky-500/40 bg-slate-900/90 text-white"
+                    : "border-rose-500/40 bg-slate-900/90 text-white";
+
+            const icon =
+                type === "success"
+                    ? "fa-solid fa-circle-check text-sky-400"
+                    : "fa-solid fa-circle-exclamation text-rose-400";
+
+            toast.className =
+                `pointer-events-auto flex items-start space-x-3 p-4 rounded-2xl glass-panel border ${borderColor} shadow-2xl transform translate-y-4 opacity-0 transition-all duration-300 max-w-sm`;
+
+            const iconContainer =
+                document.createElement("div");
+
+            iconContainer.className =
+                "pt-0.5 text-lg";
+
+            iconContainer.innerHTML =
+                `<i class="${icon}"></i>`;
+
+            const content =
+                document.createElement("div");
+
+            content.className =
+                "flex-1";
+
+            const titleElement =
+                document.createElement("p");
+
+            titleElement.className =
+                "text-sm font-bold";
+
+            titleElement.textContent = title;
+
+            const messageElement =
+                document.createElement("p");
+
+            messageElement.className =
+                "text-xs text-slate-300 mt-0.5";
+
+            messageElement.textContent = message;
+
+            content.appendChild(titleElement);
+            content.appendChild(messageElement);
+
+            const close =
+                document.createElement("button");
+
+            close.className =
+                "text-slate-400 hover:text-white";
+
+            close.innerHTML =
+                '<i class="fa-solid fa-xmark text-xs"></i>';
+
+            close.onclick = () => toast.remove();
+
+            toast.appendChild(iconContainer);
+            toast.appendChild(content);
+            toast.appendChild(close);
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+
+                toast.classList.remove(
+                    "translate-y-4",
+                    "opacity-0"
+                );
+
+            }, 10);
+
+            setTimeout(() => {
+
+                toast.classList.add(
+                    "opacity-0",
+                    "translate-y-2"
+                );
+
+                setTimeout(
+                    () => toast.remove(),
+                    300
+                );
+
+            }, 4000);
+        }
+
+
+        async function handleLogout() {
+
+            try {
+
+                await fetch(
+                    "/user/logout",
+                    {
+                        method: "POST"
+                    }
+                );
+
+            } catch (error) {
+                console.error(error);
+            }
+
+            window.location.href =
+                "/user/login";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVADA — AI-Powered Civic Complaint Management Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for professional icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        civic: {
+                            dark: '#090d16',
+                            cardBg: 'rgba(15, 23, 42, 0.75)',
+                            cardBorder: 'rgba(255, 255, 255, 0.08)',
+                            cardBorderHover: 'rgba(56, 189, 248, 0.4)',
+                            textMuted: '#94a3b8',
+                            accentBlue: '#3b82f6',
+                            accentEmerald: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060913;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            perspective: 1200px;
+        }
+
+        /* Subtle grid background pattern */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Glassmorphism card */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 15, 30, 0.92) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform-style: preserve-3d;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* Logo reveal sweep effect */
+        @keyframes logoSweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .logo-sweep-anim {
+            animation: logoSweep 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* Sequential load animations */
+        @keyframes cinematicIn {
+            0% { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        .animate-stage-1 { animation: cinematicIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
+        .animate-stage-2 { animation: cinematicIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards; opacity: 0; }
+        .animate-stage-3 { animation: cinematicIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; opacity: 0; }
+        .animate-stage-4 { animation: cinematicIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.55s forwards; opacity: 0; }
+        .animate-stage-user { animation: cinematicIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards; opacity: 0; }
+        .animate-stage-officer { animation: cinematicIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.85s forwards; opacity: 0; }
+
+        /* Button shine effect */
+        @keyframes btnShine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(200%) rotate(45deg); }
+        }
+        .btn-shine {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transform: translateX(-100%) rotate(45deg);
+            pointer-events: none;
+        }
+        .group:hover .btn-shine {
+            animation: btnShine 0.8s ease-in-out;
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between selection:bg-blue-500 selection:text-white relative bg-grid-pattern">
+
+    <!-- Smart-City Network Background Canvas -->
+    <canvas id="network-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Ambient glowing lights behind elements -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-blue-600/15 via-emerald-600/10 to-indigo-600/15 blur-[120px] pointer-events-none -z-10 rounded-full"></div>
+
+    <!-- Top Navigation / Branding Header -->
+    <header class="w-full py-6 px-6 sm:px-12 flex items-center justify-between border-b border-white/5 bg-[#060913]/60 backdrop-blur-xl sticky top-0 z-50">
+        <div class="flex items-center space-x-3.5 group cursor-pointer animate-stage-1">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-600 p-[1px] shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
+                <div class="w-full h-full bg-[#090d16] rounded-xl flex items-center justify-center text-white">
+                    <i class="fa-solid fa-cube text-blue-400 group-hover:rotate-12 transition-transform duration-500"></i>
+                </div>
+            </div>
+            <div>
+                <div class="relative overflow-hidden">
+                    <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                        NIVADA
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent logo-sweep-anim"></div>
+                </div>
+                <span class="text-[10px] tracking-widest uppercase font-semibold text-blue-400/90">GovTech AI Network</span>
+            </div>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-3 animate-stage-1">
+            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>System Status: Operational</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Section -->
+    <main class="flex-grow flex items-center justify-center px-4 sm:px-6 py-12 relative z-10">
+        <div class="max-w-5xl w-full mx-auto text-center">
+
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-300 text-xs sm:text-sm font-medium mb-6 backdrop-blur-md shadow-xl animate-stage-1">
+                <i class="fa-solid fa-microchip text-blue-400 animate-pulse"></i>
+                <span>Next-Gen Civic Infrastructure & Complaint Management</span>
+            </div>
+
+            <!-- Main Heading -->
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight mb-4 animate-stage-2">
+                Welcome to <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">NIVADA</span>
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="text-lg sm:text-xl font-medium text-slate-300 mb-3 animate-stage-3">
+                AI-Powered Civic Complaint Management Platform
+            </p>
+
+            <!-- Prompt Text -->
+            <p class="text-sm sm:text-base text-slate-400 mb-12 animate-stage-4">
+                Choose how you want to continue to access the resolution ecosystem.
+            </p>
+
+            <!-- Role Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto text-left">
+
+                <!-- Card 1: User / Citizen -->
+                <div id="user-card" class="glass-card rounded-2xl p-8 sm:p-10 flex flex-col justify-between relative group overflow-hidden animate-stage-user cursor-pointer">
+                    <!-- Top glowing accent line -->
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
+                    <!-- Cursor-based radial gradient glow inside card -->
+                    <div class="card-glow absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style="background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(59, 130, 246, 0.12), transparent 40%);"></div>
+
+                    <div>
+                        <!-- Icon -->
+                        <div class="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-2xl mb-6 shadow-inner group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-400 transition-all duration-500">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+
+                        <span class="text-xs uppercase tracking-wider font-semibold text-blue-400 mb-2 block">Citizen Portal</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:translate-x-1 transition-transform duration-300">User</h2>
+                        
+                        <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                            Report civic issues with AI assistance, track complaint progress in real-time, and provide direct feedback.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4 pt-6 border-t border-white/10">
+                        <a href="/user/login" class="relative overflow-hidden w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 transition-all duration-300 active:scale-[0.98] group/btn">
+                            <span class="btn-shine"></span>
+                            <span>User Login</span>
+                            <i class="fa-solid fa-arrow-right text-xs group-hover/btn:translate-x-1.5 transition-transform duration-300"></i>
+                        </a>
+                        <div class="text-center pt-1">
+                            <span class="text-xs text-slate-400">New User? </span>
+                            <a href="/user/register" class="text-xs font-semibold text-blue-400 hover:text-blue-300 hover:underline transition-colors">Register here</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Officer -->
+                <div id="officer-card" class="glass-card rounded-2xl p-8 sm:p-10 flex flex-col justify-between relative group overflow-hidden animate-stage-officer cursor-pointer">
+                    <!-- Top glowing accent line -->
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
+                    <!-- Cursor-based radial gradient glow inside card -->
+                    <div class="card-glow absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style="background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.12), transparent 40%);"></div>
+
+                    <div>
+                        <!-- Icon -->
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-6 shadow-inner group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-400 transition-all duration-500">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+
+                        <span class="text-xs uppercase tracking-wider font-semibold text-emerald-400 mb-2 block">Staff & Authority Portal</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:translate-x-1 transition-transform duration-300">Officer</h2>
+                        
+                        <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-8">
+                            Manage assigned public grievances, update verification statuses, and efficiently resolve civic issues.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4 pt-6 border-t border-white/10">
+                        <a href="/officer/login" class="relative overflow-hidden w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-600/30 hover:shadow-emerald-500/50 transition-all duration-300 active:scale-[0.98] group/btn">
+                            <span class="btn-shine"></span>
+                            <span>Officer Login</span>
+                            <i class="fa-solid fa-arrow-right text-xs group-hover/btn:translate-x-1.5 transition-transform duration-300"></i>
+                        </a>
+                        <div class="text-center pt-1">
+                            <span class="text-xs text-slate-400">New Officer? </span>
+                            <a href="/officer/register" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline transition-colors">Register here</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-6 px-6 border-t border-white/5 bg-[#060913]/80 text-center text-xs text-slate-500 backdrop-blur-md relative z-10">
+        <p>NIVADA &copy; 2026 | AI-Powered Civic Complaint Management</p>
+    </footer>
+
+    <!-- Smart City Network Canvas & 3D Tilt JavaScript -->
+    <script>
+        // 1. Smart City Network Background Animation
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let nodes = [];
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const nodeCount = Math.min(window.innerWidth > 768 ? 45 : 20, 50);
+        for (let i = 0; i < nodeCount; i++) {
+            nodes.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                radius: Math.random() * 2 + 1
+            });
+        }
+
+        function animateNetwork() {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.12)';
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+
+            for (let i = 0; i < nodes.length; i++) {
+                let p = nodes[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (let j = i + 1; j < nodes.length; j++) {
+                    let p2 = nodes[j];
+                    let dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 140) {
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${0.15 * (1 - dist / 140)})`;
+                        ctx.lineWidth = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(animateNetwork);
+        }
+        animateNetwork();
+
+        // 2. 3D Tilt Effect & Cursor Radial Glow for Cards
+        const cards = document.querySelectorAll('.glass-card');
+
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+
+                if (window.innerWidth > 768) {
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -5;
+                    const rotateY = ((x - centerX) / centerX) * 5;
+
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px) scale3d(1.02, 1.02, 1.02)`;
+                }
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale3d(1, 1, 1)';
+            });
+        });
+    </script>
+
+</body>
+</html>

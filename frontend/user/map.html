@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVADA - AI Civic Intelligence Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { navy: { 950: '#060913', 900: '#090d16', 800: '#0e1526' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #060913; color: #f1f5f9; overflow-x: hidden; }
+        .glass { background: rgba(14, 21, 38, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37); }
+        .glass-input { background: rgba(6, 9, 19, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; }
+        .glass-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 10px rgba(34, 211, 238, 0.2); }
+        .dark-tiles .leaflet-tile-pane { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+        @keyframes pulse-glow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.1); } }
+        .live-dot { animation: pulse-glow 2s infinite ease-in-out; }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #090d16; color: #f1f5f9; }
+        .leaflet-popup-content { margin: 10px; }
+    </style>
+</head>
+<body class="bg-navy-950 min-h-screen flex flex-col">
+<header class="sticky top-0 z-50 glass border-b border-white/10 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <i class="fa-solid fa-shield-halved text-white"></i>
+        </div>
+        <div>
+            <h1 class="font-bold tracking-wider text-sm sm:text-base text-white flex items-center gap-2">
+                NIVADA
+                <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">GovTech v4.2</span>
+            </h1>
+            <p class="text-[9px] text-slate-400 uppercase tracking-widest font-semibold">AI Civic Intelligence Command Center</p>
+        </div>
+    </div>
+    <div class="flex items-center space-x-3">
+        <div class="flex items-center gap-2"> 
+            <a href="/user/dashboard" class="px-4 py-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white transition text-xs font-semibold flex items-center gap-2"> 
+                <i class="fa-solid fa-chart-line"></i>
+                 Dashboard 
+            </a> 
+            <a href="/user/insights" class="px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500 hover:text-white transition text-xs font-semibold flex items-center gap-2"> 
+                <i class="fa-solid fa-brain"></i> 
+                Insights 
+            </a>
+        </div>
+        <div class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+            <span>Live Map Data</span>
+        </div>
+        <div id="profile-avatar" class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white">U</div>
+    </div>
+</header>
+<div class="px-4 py-3 bg-navy-900/60 border-b border-white/5">
+    <div class="glass p-2.5 rounded-xl flex flex-wrap items-center gap-2 text-xs">
+        <span class="text-cyan-400 font-bold flex items-center gap-1.5 pr-2 border-r border-white/10">
+            <i class="fa-solid fa-earth-asia"></i> SCOPE
+        </span>
+        <select id="filter-country" class="glass-input rounded-lg px-2.5 py-1"><option value="">All Countries</option></select>
+        <select id="filter-state" class="glass-input rounded-lg px-2.5 py-1"><option value="">All States</option></select>
+        <select id="filter-district" class="glass-input rounded-lg px-2.5 py-1"><option value="">All Districts</option></select>
+        <select id="filter-taluka" class="glass-input rounded-lg px-2.5 py-1"><option value="">All Talukas</option></select>
+        <select id="filter-village" class="glass-input rounded-lg px-2.5 py-1 font-semibold text-cyan-300"><option value="">All Villages</option></select>
+        <select id="filter-category" class="glass-input rounded-lg px-2.5 py-1 font-semibold text-cyan-300"><option value="">All Categories</option></select>
+        <select id="filter-status" class="glass-input rounded-lg px-2.5 py-1"><option value="">All Statuses</option></select>
+        <select id="filter-priority" class="glass-input rounded-lg px-2.5 py-1"><option value="">All Priorities</option></select>
+    </div>
+</div>
+<main class="flex-1 relative flex flex-col lg:flex-row min-h-[650px]">
+    <div id="map" class="flex-1 w-full h-full relative z-10 dark-tiles min-h-[500px]"></div>
+    <div class="absolute top-3 left-3 z-20 hidden md:flex flex-col space-y-2 w-56 glass p-2.5 rounded-xl shadow-xl">
+        <span class="text-[10px] font-bold text-cyan-400 tracking-wider">
+            <i class="fa-solid fa-compass"></i> MAP CONTROLS
+        </span>
+        <div class="grid grid-cols-3 gap-1 bg-navy-900 p-1 rounded-lg border border-white/10 text-[10px]">
+            <button onclick="setVisMode('markers')" id="btn-markers" class="py-1 font-semibold rounded bg-cyan-500 text-slate-950 transition">Markers</button>
+            <button onclick="setVisMode('heatmap')" id="btn-heatmap" class="py-1 font-semibold rounded text-slate-300 hover:text-white transition">Heat</button>
+            <button onclick="setVisMode('boundaries')" id="btn-boundaries" class="py-1 font-semibold rounded text-slate-300 hover:text-white transition">Bounds</button>
+        </div>
+        <button onclick="fitMapToData()" class="w-full py-1.5 glass text-[11px] text-slate-300 hover:text-white rounded-lg flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-expand text-cyan-400"></i> Center Map
+        </button>
+    </div>
+    <div class="absolute top-3 right-3 z-20 w-80 glass p-4 rounded-xl shadow-2xl flex flex-col space-y-3 max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div>
+                <span id="panel-scope" class="text-[9px] text-cyan-400 uppercase tracking-widest font-bold">All Locations</span>
+                <h3 id="panel-village" class="text-base font-bold text-white">All Locations</h3>
+            </div>
+            <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs">
+                <i class="fa-solid fa-location-crosshairs"></i>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-slate-400">Total</span><p id="stat-total" class="text-lg font-bold text-white mt-0.5">0</p></div>
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-amber-400">Pending</span><p id="stat-pending" class="text-lg font-bold text-amber-400 mt-0.5">0</p></div>
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-blue-400">In Progress</span><p id="stat-progress" class="text-lg font-bold text-blue-400 mt-0.5">0</p></div>
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-emerald-400">Resolved</span><p id="stat-resolved" class="text-lg font-bold text-emerald-400 mt-0.5">0</p></div>
+        </div>
+        <div class="glass p-2.5 rounded-lg space-y-1 text-xs">
+            <div class="flex justify-between text-[11px]"><span class="text-slate-300">Resolution Rate</span><span id="stat-rate" class="font-bold text-emerald-400">0%</span></div>
+            <div class="w-full bg-navy-950 h-1.5 rounded-full overflow-hidden">
+                <div id="stat-rate-bar" class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="space-y-2 pt-2 border-t border-white/10 text-xs">
+            <h4 class="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                <i class="fa-solid fa-chart-bar text-cyan-400"></i> Top Civic Issues
+            </h4>
+            <div id="top-issues" class="space-y-2"><div class="text-[11px] text-slate-500">No complaints found</div></div>
+        </div>
+    </div>
+</main>
+<div id="modal" class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="glass w-full max-w-lg rounded-xl shadow-2xl p-5 space-y-4 border border-white/15">
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <div class="flex items-center space-x-2.5">
+                <span id="modal-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">Unknown</span>
+                <h3 id="modal-title" class="text-sm font-bold text-white">Complaint</h3>
+            </div>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p id="modal-desc" class="text-xs text-slate-300 leading-relaxed bg-navy-900/60 p-3 rounded-lg">No description available.</p>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-slate-400">Priority</span><p id="modal-priority" class="font-bold text-rose-400">Unknown</p></div>
+            <div class="glass p-2.5 rounded-lg"><span class="text-[9px] text-slate-400">AI Confidence</span><p id="modal-ai" class="font-bold text-cyan-400">N/A</p></div>
+        </div>
+        <button onclick="closeModal()" class="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs rounded-lg shadow">Close Record</button>
+    </div>
+</div>
+<script>
+let map = null, clusterGroup = null, heatLayer = null, boundLayer = null, visMode = "markers", requestVersion = 0;
+const app = { village: "", complaints: [], boundaries: null };
+document.addEventListener("DOMContentLoaded", initializeApp);
+async function initializeApp() {
+    initializeMap();
+    await loadProfileSafe();
+    await loadCountries();
+    await loadFilterOptions();
+    await loadMapData();
+    setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+}
+function initializeMap() {
+    map = L.map("map", { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    clusterGroup = L.markerClusterGroup({ maxClusterRadius: 40 });
+    map.addLayer(clusterGroup);
+}
+async function loadProfileSafe() {
+    try {
+        const response = await fetch(
+            "/api/user/profile",
+            {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json"
+                }
+            }
+        );
+
+        if (response.status === 401) {
+            window.location.href = "/user/login";
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Profile request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const avatar = document.getElementById("profile-avatar");
+
+        if (!avatar) return;
+
+        const username =
+            data.username ||
+            data.name ||
+            data.user?.username ||
+            data.user?.name ||
+            "U";
+
+        avatar.innerText = username
+            .trim()
+            .charAt(0)
+            .toUpperCase();
+
+    } catch (error) {
+        console.error("Profile loading error:", error);
+    }
+}
+async function apiGet(url) {
+    const response = await fetch(url, { method: "GET", credentials: "include", headers: { "Accept": "application/json" } });
+    if (!response.ok) {
+        let message = `Request failed: ${response.status}`;
+        try {
+            const data = await response.json();
+            if (data.detail) message = data.detail;
+        } catch (_) {}
+        throw new Error(message);
+    }
+    return await response.json();
+}
+async function loadCountries() {
+    const select = document.getElementById("filter-country");
+
+    if (!select) return;
+
+    try {
+        select.innerHTML = `<option value="">Loading Countries...</option>`;
+
+        const data = await apiGet("/api/user/geography");
+
+        const countries = Array.isArray(data.countries)
+            ? data.countries
+            : [];
+
+        populateSelect(
+            "filter-country",
+            countries,
+            "All Countries"
+        );
+
+        select.onchange = async function () {
+            await loadStates(this.value);
+            await loadMapData();
+            await navigateToSelection();
+        };
+
+    } catch (error) {
+        console.error("Countries loading error:", error);
+        select.innerHTML = `<option value="">Failed to load countries</option>`;
+    }
+}
+async function loadStates(countryId) {
+    clearSelect("filter-state", "All States");
+    clearSelect("filter-district", "All Districts");
+    clearSelect("filter-taluka", "All Talukas");
+    clearSelect("filter-village", "All Villages");
+
+    if (!countryId) return;
+
+    try {
+        const data = await apiGet(
+            `/api/user/geography?country_id=${encodeURIComponent(countryId)}`
+        );
+
+        populateSelect(
+            "filter-state",
+            data.states || [],
+            "All States"
+        );
+
+        document.getElementById("filter-state").onchange = async function () {
+            await loadDistricts(this.value);
+            await loadMapData();
+            await navigateToSelection();
+        };
+
+    } catch (error) {
+        console.error("States loading error:", error);
+    }
+}
+async function loadDistricts(stateId) {
+    clearSelect("filter-district", "All Districts");
+    clearSelect("filter-taluka", "All Talukas");
+    clearSelect("filter-village", "All Villages");
+
+    if (!stateId) return;
+
+    try {
+        const data = await apiGet(
+            `/api/user/geography?state_id=${encodeURIComponent(stateId)}`
+        );
+
+        populateSelect(
+            "filter-district",
+            data.districts || [],
+            "All Districts"
+        );
+
+        document.getElementById("filter-district").onchange = async function () {
+            await loadTalukas(this.value);
+            await loadMapData();
+            await navigateToSelection();
+        };
+
+    } catch (error) {
+        console.error("District loading error:", error);
+    }
+}
+async function loadTalukas(districtId) {
+    clearSelect("filter-taluka", "All Talukas");
+    clearSelect("filter-village", "All Villages");
+
+    if (!districtId) return;
+
+    try {
+        const data = await apiGet(
+            `/api/user/geography?district_id=${encodeURIComponent(districtId)}`
+        );
+
+        populateSelect(
+            "filter-taluka",
+            data.talukas || [],
+            "All Talukas"
+        );
+
+        document.getElementById("filter-taluka").onchange = async function () {
+            await loadVillages(this.value);
+            await loadMapData();
+            await navigateToSelection();
+        };
+
+    } catch (error) {
+        console.error("Talukas loading error:", error);
+    }
+}
+async function loadVillages(talukaId) {
+    clearSelect("filter-village", "All Villages");
+
+    if (!talukaId) return;
+
+    try {
+        const data = await apiGet(
+            `/api/user/geography?taluka_id=${encodeURIComponent(talukaId)}`
+        );
+
+        populateSelect(
+            "filter-village",
+            data.villages || [],
+            "All Villages"
+        );
+
+        document.getElementById("filter-village").onchange = async function () {
+            await loadMapData();
+            await navigateToSelection();
+        };
+
+    } catch (error) {
+        console.error("Villages loading error:", error);
+    }
+}
+function populateSelect(id, items, defaultText) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = defaultText;
+    select.appendChild(defaultOption);
+    if (!Array.isArray(items)) return;
+    items.forEach(item => {
+        const option = document.createElement("option");
+        if (item && typeof item === "object") {
+            option.value = item.id ?? item.value ?? "";
+            option.textContent = item.name ?? item.label ?? "";
+        } else {
+            option.value = item ?? "";
+            option.textContent = item ?? "";
+        }
+        if (option.value !== "" && option.textContent !== "") select.appendChild(option);
+    });
+}
+function clearSelect(id, text) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = text;
+    select.appendChild(option);
+}
+async function loadFilterOptions() {
+    try {
+        const data = await apiGet("/api/user/options");
+
+        populateDynamicFilter(
+            "filter-category",
+            data.categories || [],
+            "All Categories"
+        );
+
+        populateDynamicFilter(
+            "filter-status",
+            data.statuses || [],
+            "All Statuses"
+        );
+
+        populateDynamicFilter(
+            "filter-priority",
+            data.priorities || [],
+            "All Priorities"
+        );
+
+        document.getElementById("filter-category").onchange = loadMapData;
+        document.getElementById("filter-status").onchange = loadMapData;
+        document.getElementById("filter-priority").onchange = loadMapData;
+
+    } catch (error) {
+        console.error("Filter options loading error:", error);
+    }
+}
+function populateDynamicFilter(id, items, defaultText) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = defaultText;
+    select.appendChild(option);
+    if (!Array.isArray(items)) return;
+    items.forEach(item => {
+        let value, name;
+        if (item && typeof item === "object") {
+            value = item.id ?? item.value ?? item.name;
+            name = item.name ?? item.label ?? item.value;
+        } else { value = item; name = item; }
+        if (value !== undefined && value !== null && name !== undefined && name !== null) {
+            const opt = document.createElement("option");
+            opt.value = String(value);
+            opt.textContent = String(name);
+            select.appendChild(opt);
+        }
+    });
+}
+async function navigateToSelection() {
+    try {
+        const villageId = document.getElementById("filter-village")?.value;
+        const talukaId = document.getElementById("filter-taluka")?.value;
+        const districtId = document.getElementById("filter-district")?.value;
+        const stateId = document.getElementById("filter-state")?.value;
+        const countryId = document.getElementById("filter-country")?.value;
+
+        let url = "/api/user/geography/location";
+
+        if (villageId) {
+            url += `?village_id=${encodeURIComponent(villageId)}`;
+        } else if (talukaId) {
+            url += `?taluka_id=${encodeURIComponent(talukaId)}`;
+        } else if (districtId) {
+            url += `?district_id=${encodeURIComponent(districtId)}`;
+        } else if (stateId) {
+            url += `?state_id=${encodeURIComponent(stateId)}`;
+        } else if (countryId) {
+            url += `?country_id=${encodeURIComponent(countryId)}`;
+        } else {
+            map.setView([20.5937, 78.9629], 5, { animate: true });
+            return;
+        }
+
+        const data = await apiGet(url);
+
+        const lat = Number(data.latitude);
+        const lng = Number(data.longitude);
+        const zoom = Number(data.zoom || 6);
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            map.flyTo([lat, lng], zoom, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+
+    } catch (error) {
+        console.error("Map navigation error:", error);
+    }
+}
+async function loadMapData() {
+    const currentRequest = ++requestVersion;
+    try {
+        const params = buildMapParams();
+        const query = params.toString();
+        const mapUrl = query ? `/api/user/map?${query}` : "/api/user/map";
+        const insightUrl = query ? `/api/user/insights?${query}` : "/api/user/insights";
+        const [mapData, insightData] = await Promise.all([apiGet(mapUrl), apiGet(insightUrl)]);
+        if (currentRequest !== requestVersion) return;
+        app.complaints = Array.isArray(mapData.complaints) ? mapData.complaints : Array.isArray(mapData.markers) ? mapData.markers : Array.isArray(mapData.data) ? mapData.data : [];
+        app.boundaries = mapData.boundaries || mapData.geojson || mapData.boundary || null;
+        updateStats(insightData);
+        updateTopIssues(insightData);
+        updateLocationInfo(mapData);
+        renderLayers();
+    } catch (error) {
+        console.error("Map loading error:", error);
+        app.complaints = [];
+        app.boundaries = null;
+        updateStats({});
+        updateTopIssues({});
+        renderLayers();
+    }
+}
+function buildMapParams() {
+    const params = new URLSearchParams();
+    const filters = { country_id: "filter-country", state_id: "filter-state", district_id: "filter-district", taluka_id: "filter-taluka", village_id: "filter-village", category_id: "filter-category", status: "filter-status", priority: "filter-priority" };
+    Object.entries(filters).forEach(([param, id]) => {
+        const element = document.getElementById(id);
+        const value = element?.value;
+        if (value !== undefined && value !== null && String(value).trim() !== "") params.set(param, String(value));
+    });
+    return params;
+}
+function setVisMode(mode) {
+    if (!["markers", "heatmap", "boundaries"].includes(mode)) return;
+    visMode = mode;
+    ["markers", "heatmap", "boundaries"].forEach(m => {
+        const button = document.getElementById(`btn-${m}`);
+        if (!button) return;
+        button.className = m === mode ? "py-1 font-semibold rounded bg-cyan-500 text-slate-950 transition" : "py-1 font-semibold rounded text-slate-300 hover:text-white transition";
+    });
+    renderLayers();
+}
+function renderLayers() {
+    if (!map) return;
+    if (clusterGroup) clusterGroup.clearLayers();
+    if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+    if (boundLayer) { map.removeLayer(boundLayer); boundLayer = null; }
+    if (visMode === "markers") renderMarkers();
+    if (visMode === "heatmap") renderHeatmap();
+    if (visMode === "boundaries") renderBoundaries();
+    fitMapToData();
+}
+function renderMarkers() {
+    if (!clusterGroup) return;
+    app.complaints.forEach(complaint => {
+        const lat = Number(complaint.latitude ?? complaint.lat);
+        const lng = Number(complaint.longitude ?? complaint.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const status = String(complaint.status ?? "Unknown");
+        const normalizedStatus = status.toLowerCase().replace(/_/g, " ").trim();
+        let markerColor = "#94a3b8";
+        if (normalizedStatus === "resolved") markerColor = "#10b981";
+        else if (normalizedStatus === "in progress") markerColor = "#3b82f6";
+        else if (normalizedStatus === "pending") markerColor = "#f59e0b";
+        const category = getCategoryName(complaint);
+        const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: "",
+                html: `<div style="background:${markerColor};width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${markerColor};"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        });
+        marker.bindPopup(`<div style="font-size:11px;min-width:160px;color:#f1f5f9;"><b>#${escapeHtml(complaint.id)} - ${escapeHtml(category)}</b><br>Status: ${escapeHtml(status)}<br>Priority: ${escapeHtml(complaint.priority ?? "Unknown")}<br><button onclick="openModal(${Number(complaint.id)})" style="margin-top:7px;background:#06b6d4;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">View</button></div>`);
+        clusterGroup.addLayer(marker);
+    });
+}
+function renderHeatmap() {
+    const points = app.complaints.map(complaint => {
+        const lat = Number(complaint.latitude ?? complaint.lat);
+        const lng = Number(complaint.longitude ?? complaint.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return [lat, lng, 0.8];
+    }).filter(Boolean);
+    if (!points.length) return;
+    heatLayer = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+}
+function renderBoundaries() {
+    if (!app.boundaries) return;
+    try { boundLayer = L.geoJSON(app.boundaries, { style: { color: "#22d3ee", weight: 2, fillOpacity: 0.15 } }).addTo(map); }
+    catch (error) { console.error("Boundary rendering error:", error); }
+}
+function fitMapToData() {
+    if (!map) return;
+    if (boundLayer) {
+        const bounds = boundLayer.getBounds();
+        if (bounds.isValid()) { map.fitBounds(bounds, { padding: [40, 40] }); return; }
+    }
+    const points = app.complaints.map(complaint => {
+        const lat = Number(complaint.latitude ?? complaint.lat);
+        const lng = Number(complaint.longitude ?? complaint.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return [lat, lng];
+    }).filter(Boolean);
+    if (!points.length) return;
+    const bounds = L.latLngBounds(points);
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+}
+function getCategoryName(complaint) {
+    if (complaint.category && typeof complaint.category === "object") return complaint.category.name || complaint.category.label || "Unknown";
+    return complaint.category || complaint.category_name || "Unknown";
+}
+function openModal(id) {
+    const complaint = app.complaints.find(item => Number(item.id) === Number(id));
+    if (!complaint) return;
+    const category = getCategoryName(complaint);
+    const status = complaint.status ?? "Unknown";
+    const priority = complaint.priority ?? "Unknown";
+    const description = complaint.complaint_text || complaint.desc || "No description available.";
+    const confidence = Number(complaint.ai_confidence);
+    document.getElementById("modal-title").innerText = `Complaint #${complaint.id} - ${category}`;
+    document.getElementById("modal-desc").innerText = description;
+    document.getElementById("modal-priority").innerText = priority;
+    document.getElementById("modal-badge").innerText = status;
+    document.getElementById("modal-ai").innerText = Number.isFinite(confidence) ? `${confidence.toFixed(1)}%` : "N/A";
+    const modal = document.getElementById("modal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+}
+function closeModal() {
+    const modal = document.getElementById("modal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+}
+function updateStats(data) {
+    const summary = data?.summary || {};
+    const total = toNumber(summary.total ?? data?.total ?? app.complaints.length);
+    const pending = toNumber(summary.pending ?? data?.pending ?? countStatus("pending"));
+    const progress = toNumber(summary.in_progress ?? summary.progress ?? data?.in_progress ?? data?.progress ?? countStatus("in progress"));
+    const resolved = toNumber(summary.resolved ?? data?.resolved ?? countStatus("resolved"));
+    document.getElementById("stat-total").innerText = total;
+    document.getElementById("stat-pending").innerText = pending;
+    document.getElementById("stat-progress").innerText = progress;
+    document.getElementById("stat-resolved").innerText = resolved;
+    const rate = total > 0 ? Math.min(100, (resolved / total) * 100) : 0;
+    document.getElementById("stat-rate").innerText = `${rate.toFixed(1)}%`;
+    document.getElementById("stat-rate-bar").style.width = `${rate}%`;
+}
+function countStatus(target) {
+    return app.complaints.filter(complaint => {
+        const status = String(complaint.status ?? "").toLowerCase().replace(/_/g, " ").trim();
+        return status === target;
+    }).length;
+}
+function updateTopIssues(data) {
+    let distribution = data?.category_distribution || data?.categories || [];
+    if (!Array.isArray(distribution)) distribution = Object.entries(distribution).map(([name, count]) => ({ name, count }));
+    if (!distribution.length) {
+        const counts = {};
+        app.complaints.forEach(complaint => {
+            const name = getCategoryName(complaint);
+            counts[name] = (counts[name] || 0) + 1;
+        });
+        distribution = Object.entries(counts).map(([name, count]) => ({ name, count }));
+    }
+    distribution = distribution.map(item => ({
+        name: item.name || item.category || "Unknown",
+        count: Number(item.count ?? item.total ?? 0)
+    })).filter(item => item.count > 0).sort((a, b) => b.count - a.count);
+    const max = Math.max(...distribution.map(item => item.count), 1);
+    const container = document.getElementById("top-issues");
+    if (!distribution.length) { container.innerHTML = `<div class="text-[11px] text-slate-500">No complaints found</div>`; return; }
+    container.innerHTML = distribution.slice(0, 5).map(item => {
+        const width = Math.max(10, (item.count / max) * 100);
+        return `<div class="space-y-1"><div class="flex justify-between text-[11px]"><span class="text-slate-300">${escapeHtml(item.name)}</span><span class="text-slate-400">${item.count} complaints</span></div><div class="w-full bg-navy-950 h-1.5 rounded-full overflow-hidden"><div class="bg-cyan-400 h-full rounded-full" style="width:${width}%"></div></div></div>`;
+    }).join("");
+}
+function updateLocationInfo(data) {
+    const location = data?.location || data?.selected_location || {};
+    const village = getSelectedText("filter-village"), taluka = getSelectedText("filter-taluka"), district = getSelectedText("filter-district"), state = getSelectedText("filter-state"), country = getSelectedText("filter-country");
+    let name = location.village || village || location.taluka || taluka || location.district || district || location.state || state || location.country || country || "All Locations";
+    document.getElementById("panel-village").innerText = name;
+    document.getElementById("panel-scope").innerText = getScopeLabel();
+    app.village = name;
+}
+function getSelectedText(id) {
+    const select = document.getElementById(id);
+    if (!select || !select.value || !select.selectedOptions.length) return "";
+    return (select.selectedOptions[0].textContent || "").trim();
+}
+function getScopeLabel() {
+    if (document.getElementById("filter-village")?.value) return "Selected Village";
+    if (document.getElementById("filter-taluka")?.value) return "Selected Taluka";
+    if (document.getElementById("filter-district")?.value) return "Selected District";
+    if (document.getElementById("filter-state")?.value) return "Selected State";
+    if (document.getElementById("filter-country")?.value) return "Selected Country";
+    return "All Locations";
+}
+function toNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+}
+function escapeHtml(value) {
+    return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+document.addEventListener("keydown", event => { if (event.key === "Escape") closeModal(); });
+document.getElementById("modal").addEventListener("click", event => { if (event.target.id === "modal") closeModal(); });
+</script>
+</body>
+</html>

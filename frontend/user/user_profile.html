@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile — NIVADA AI Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nivada: {
+                            bg: '#090D16',
+                            card: '#111827',
+                            cardHover: '#162032',
+                            border: '#1E293B',
+                            borderFocus: '#3B82F6',
+                            accent: '#38BDF8',
+                            accentHover: '#0EA5E9',
+                            muted: '#94A3B8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 25px -5px rgba(56, 189, 248, 0.15)',
+                        'glow-lg': '0 0 35px -5px rgba(56, 189, 248, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.03); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #090D16; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-nivada-bg text-slate-100 font-sans min-h-screen relative overflow-x-hidden selection:bg-sky-500 selection:text-white">
+
+    <div class="absolute inset-0 bg-grid-pattern pointer-events-none z-0 opacity-60"></div>
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-[pulse-slow_8s_infinite]"></div>
+    <div class="absolute bottom-1/3 right-10 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none animate-[pulse-slow_10s_infinite]"></div>
+
+    <header class="sticky top-0 z-50 glass-panel border-b border-nivada-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand / Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-brain-circuit text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-wider bg-gradient-to-r from-white via-slate-100 to-sky-400 bg-clip-text text-transparent">NIVADA</span>
+                    <span class="block text-[10px] uppercase tracking-widest text-sky-400 font-medium">AI-Powered Civic Platform</span>
+                </div>
+            </div>
+
+            <!-- Nav Links (Desktop) -->
+            <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                <a href="/user/dashboard" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200">Dashboard</a>
+                <a href="/user/complaint"
+                class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200">
+                    Submit Complaint
+                </a>
+            </nav>
+
+            <!-- Right Actions: Notifications & User Dropdown -->
+            <div class="flex items-center space-x-4">
+                <!-- Notifications Bell -->
+                <button aria-label="Notifications" class="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-300 hover:text-white hover:border-sky-500/50 transition-all relative">
+                    <i class="fa-regular fa-bell text-sm"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                </button>
+
+                <!-- User Profile Dropdown Menu -->
+                <div class="relative">
+                    <button id="userDropdownBtn" aria-expanded="false" aria-haspopup="true" class="flex items-center space-x-3 p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/60 hover:border-sky-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400">
+                        <div id="navUserAvatar" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                            PS
+                        </div>
+                        <span id="navUserName" class="hidden sm:inline-block text-sm font-medium text-slate-200 pr-1">Prajwal Sankpal</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-slate-400 pr-1 transition-transform duration-200" id="dropdownArrow"></i>
+                    </button>
+
+                    <!-- Dropdown Content -->
+                    <div id="userDropdownMenu" class="absolute right-0 mt-2 w-56 rounded-2xl glass-panel shadow-2xl border border-slate-700/80 py-2 hidden z-50 transform origin-top-right transition-all duration-200">
+                        <div class="px-4 py-3 border-b border-slate-700/60">
+                            <p class="text-xs text-slate-400">Signed in as</p>
+                            <p id="dropdownUserEmail" class="text-sm font-semibold text-white truncate">prajwal.sankpal@nivada.gov</p>
+                        </div>
+                        <a href="/user/dashboard" class="flex items-center px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors">
+                            <i class="fa-solid fa-chart-pie w-5 mr-2"></i> Dashboard
+                        </a>
+                        <div class="border-t border-slate-700/60 my-1"></div>
+                        <button onclick="handleLogout()" class="w-full text-left flex items-center px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors">
+                            <i class="fa-solid fa-right-from-bracket w-5 mr-2"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button id="mobileMenuBtn" aria-label="Toggle Menu" class="md:hidden p-2 rounded-lg bg-slate-800/60 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Nav Menu -->
+        <div id="mobileMenu" class="md:hidden hidden border-t border-slate-800 px-4 pt-3 pb-4 space-y-2 glass-panel">
+            <a href="/user/dashboard" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800">Dashboard</a>
+            <a href="/user/complaint"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200">
+                Submit Complaint
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 relative z-10">
+        
+        <!-- Page Header & Breadcrumb -->
+        <div class="mb-8 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.1s;">
+            <nav class="text-xs text-slate-400 mb-2 flex items-center space-x-2">
+                <a href="/user/dashboard" class="hover:text-sky-400 transition-colors">Dashboard</a>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                <span class="text-sky-400 font-medium">Profile</span>
+            </nav>
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center space-x-3">
+                <span>My Profile</span>
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">Citizen Account</span>
+            </h1>
+            <p class="text-sm sm:text-base text-slate-400 mt-1">Manage your personal information and account settings.</p>
+        </div>
+
+        <!-- Two-Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Profile Identity Card -->
+                <div class="glass-panel rounded-3xl p-6 sm:p-8 glow-hover transition-all duration-300 relative overflow-hidden group opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.2s;">
+                    <div class="absolute -right-12 -top-12 w-36 h-36 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all"></div>
+                    
+                    <div class="flex flex-col items-center text-center relative z-10">
+                        <!-- Avatar -->
+                        <div class="relative mb-5 group/avatar cursor-pointer" onclick="triggerPhotoUpload()">
+                            <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1 bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-500 shadow-xl shadow-sky-500/10">
+                                <div id="profileAvatarContainer" class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden relative">
+                                    <span id="avatarInitials" class="text-3xl font-bold tracking-wider text-white">PS</span>
+                                    <img id="avatarImageElement" src="" alt="Profile Photo" class="w-full h-full object-cover hidden">
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 rounded-full bg-slate-900/60 backdrop-blur-sm opacity-0 group-hover/avatar:opacity-100 transition-all duration-300 flex flex-col items-center justify-center text-white">
+                                <i class="fa-solid fa-camera text-xl mb-1 text-sky-400 animate-bounce"></i>
+                                <span class="text-[11px] font-semibold tracking-wide">Change Photo</span>
+                            </div>
+                            <div class="absolute bottom-1 right-2 w-5 h-5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center shadow">
+                                <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                            </div>
+                        </div>
+                        <input type="file" id="photoUploadInput" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" onchange="handlePhotoSelected(event)">
+
+                        <h2 id="profileCardName" class="text-xl sm:text-2xl font-bold text-white">Prajwal Sankpal</h2>
+                        <p class="text-xs uppercase tracking-widest text-sky-400 font-semibold mt-1">Citizen</p>
+                        
+                        <div class="mt-3 inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span>● Active</span>
+                        </div>
+
+                        <div class="w-full mt-6 pt-6 border-t border-slate-800">
+                            <button onclick="toggleEditMode()" id="cardEditBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-sm font-semibold text-slate-200 hover:text-white transition-all flex items-center justify-center space-x-2 group">
+                                <i class="fa-solid fa-pen-to-square text-sky-400 group-hover:scale-110 transition-transform"></i>
+                                <span id="cardEditBtnText">Edit Profile</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Information Summary Card -->
+                <div class="glass-panel rounded-3xl p-6 sm:p-8 glow-hover transition-all duration-300 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.3s;">
+                    <div class="flex items-center space-x-3 mb-5">
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                            <i class="fa-solid fa-shield-halved text-sm"></i>
+                        </div>
+                        <h3 class="text-base font-semibold text-white">Account Information</h3>
+                    </div>
+
+                    <div class="space-y-4 text-sm">
+                        <div class="flex items-center justify-between py-2 border-b border-slate-800/80">
+                            <span class="text-slate-400">Account Type</span>
+                            <span id="infoAccountType" class="font-medium text-white px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700">Citizen</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-slate-800/80">
+                            <span class="text-slate-400">Account Status</span>
+                            <span class="font-medium text-emerald-400 flex items-center space-x-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <span id="infoAccountStatus">Active</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between py-2">
+                            <span class="text-slate-400">Member Since</span>
+                            <span id="infoMemberSince" class="font-medium text-slate-200">September 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Personal Information Card -->
+                <div class="glass-panel rounded-3xl p-6 sm:p-8 glow-hover transition-all duration-300 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.3s;">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Personal Information</h3>
+                            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Update the information associated with your account.</p>
+                        </div>
+                        <div id="editBadge" class="hidden px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold animate-pulse">
+                            Editing Mode
+                        </div>
+                    </div>
+
+                    <!-- Profile Form -->
+                    <form id="profileForm" onsubmit="handleSaveProfile(event)" class="space-y-5">
+                        
+                        <!-- Full Name -->
+                        <div class="space-y-1.5">
+                            <label for="fullNameInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Full Name</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                    <i class="fa-solid fa-user text-sm"></i>
+                                </div>
+                                <input type="text" id="fullNameInput" name="name" readonly required
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700/80 text-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                                    placeholder="Enter your full name" value="Prajwal Sankpal">
+                            </div>
+                            <p id="nameError" class="text-xs text-rose-400 hidden mt-1">Please enter a valid full name.</p>
+                        </div>
+
+                        <!-- Email Address -->
+                        <div class="space-y-1.5">
+                            <label for="emailInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Email Address <span class="text-[10px] text-slate-500 font-normal">(Read-only)</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                    <i class="fa-solid fa-envelope text-sm"></i>
+                                </div>
+                                <input type="email" id="emailInput" name="email" readonly disabled
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 text-sm cursor-not-allowed"
+                                    value="prajwal.sankpal@nivada.gov">
+                            </div>
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div class="space-y-1.5">
+                            <label for="phoneInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Phone Number</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                    <i class="fa-solid fa-phone text-sm"></i>
+                                </div>
+                                <input type="tel" id="phoneInput" name="phone" readonly required
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700/80 text-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                                    placeholder="Enter your phone number" value="9876543210">
+                            </div>
+                            <p id="phoneError" class="text-xs text-rose-400 hidden mt-1"><i class="fa-solid fa-circle-exclamation mr-1"></i> Please enter a valid phone number.</p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div id="formActionButtons" class="hidden pt-4 flex items-center justify-end space-x-3 border-t border-slate-800">
+                            <button type="button" onclick="cancelEditMode()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-300 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" id="saveChangesBtn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-all flex items-center space-x-2">
+                                <span id="saveBtnText">Save Changes</span>
+                                <i id="saveSpinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Account Security Card -->
+                <div class="glass-panel rounded-3xl p-6 sm:p-8 glow-hover transition-all duration-300 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]" style="animation-delay: 0.4s;">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Account Security</h3>
+                            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Protect your NIVADA account.</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                            <i class="fa-solid fa-lock text-sm"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                        <div class="space-y-1 mb-4 sm:mb-0">
+                            <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold block">Password</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-200 tracking-widest text-lg font-mono">••••••••••••</span>
+                                <span class="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Secured</span>
+                            </div>
+                        </div>
+                        <button onclick="openPasswordModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-sm font-semibold text-slate-200 hover:text-white transition-all flex items-center justify-center space-x-2 group">
+                            <i class="fa-solid fa-key text-sky-400 group-hover:rotate-45 transition-transform"></i>
+                            <span>Change Password</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <div id="passwordModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-950/80 backdrop-blur-md hidden transition-all opacity-0">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl transform scale-95 transition-transform duration-300" id="passwordModalContent">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Change Password</h3>
+                        <p class="text-xs text-slate-400">Update account credentials</p>
+                    </div>
+                </div>
+                <button onclick="closePasswordModal()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="passwordForm" onsubmit="handlePasswordChange(event)" class="space-y-4">
+                
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Current Password</label>
+                    <div class="relative">
+                        <input type="password" id="currentPassword" required
+                            class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-sky-500"
+                            placeholder="Enter current password">
+                        <button type="button" onclick="togglePasswordVisibility('currentPassword', 'currEyeIcon')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white">
+                            <i id="currEyeIcon" class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">New Password</label>
+                    <div class="relative">
+                        <input type="password" id="newPassword" required oninput="evaluatePasswordStrength(this.value)"
+                            class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-sky-500"
+                            placeholder="Enter new secure password">
+                        <button type="button" onclick="togglePasswordVisibility('newPassword', 'newEyeIcon')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white">
+                            <i id="newEyeIcon" class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="pt-2 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400">Password Strength:</span>
+                            <span id="strengthLabel" class="font-semibold text-slate-400">None</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 h-1.5">
+                            <div id="strengthBar1" class="rounded-full bg-slate-800 transition-colors"></div>
+                            <div id="strengthBar2" class="rounded-full bg-slate-800 transition-colors"></div>
+                            <div id="strengthBar3" class="rounded-full bg-slate-800 transition-colors"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-1 pt-2 text-[11px] text-slate-400">
+                            <div id="reqLength" class="flex items-center space-x-1"><i class="fa-solid fa-circle text-[6px] text-slate-600"></i><span>At least 8 chars</span></div>
+                            <div id="reqUpper" class="flex items-center space-x-1"><i class="fa-solid fa-circle text-[6px] text-slate-600"></i><span>Uppercase letter</span></div>
+                            <div id="reqNumber" class="flex items-center space-x-1"><i class="fa-solid fa-circle text-[6px] text-slate-600"></i><span>Number</span></div>
+                            <div id="reqSpecial" class="flex items-center space-x-1"><i class="fa-solid fa-circle text-[6px] text-slate-600"></i><span>Special char</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Confirm New Password</label>
+                    <div class="relative">
+                        <input type="password" id="confirmPassword" required
+                            class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-sky-500"
+                            placeholder="Re-enter new password">
+                        <button type="button" onclick="togglePasswordVisibility('confirmPassword', 'confEyeIcon')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white">
+                            <i id="confEyeIcon" class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <p id="passwordMatchError" class="text-xs text-rose-400 hidden">Passwords do not match.</p>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-800">
+                    <button type="button" onclick="closePasswordModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-300">
+                        Cancel
+                    </button>
+                    <button type="submit" id="updatePasswordBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-all flex items-center space-x-2">
+                        <span id="updatePasswordBtnText">Update Password</span>
+                        <i id="updatePasswordSpinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+    <script>
+        let currentUser = null;
+        let isEditing = false;
+        let originalValues = {};
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            await loadUserProfile();
+            setupDropdown();
+        });
+
+        async function loadUserProfile() {
+            try {
+                const response = await fetch("/api/user/profile", {
+                    credentials: "same-origin"
+                });
+
+                if (response.status === 401) {
+                    window.location.href = "/user/login";
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Failed to load profile");
+                }
+
+                currentUser = await response.json();
+
+                const name = currentUser.username || "Citizen";
+                const email = currentUser.email || "";
+                const phone = currentUser.phone || "";
+
+                document.getElementById("profileCardName").textContent = name;
+                document.getElementById("navUserName").textContent = name;
+                document.getElementById("dropdownUserEmail").textContent = email;
+
+                document.getElementById("fullNameInput").value = name;
+                document.getElementById("emailInput").value = email;
+                document.getElementById("phoneInput").value = phone;
+
+                const role = currentUser.role || "citizen";
+
+                document.getElementById("infoAccountType").textContent =
+                    role.toLowerCase() === "citizen" || role.toLowerCase() === "user"
+                        ? "Citizen"
+                        : role;
+
+                document.getElementById("infoAccountStatus").textContent = "Active";
+
+                if (currentUser.created_at) {
+                    const createdDate = new Date(currentUser.created_at);
+
+                    document.getElementById("infoMemberSince").textContent =
+                        createdDate.toLocaleDateString("en-IN", {
+                            month: "long",
+                            year: "numeric"
+                        });
+                } else {
+                    document.getElementById("infoMemberSince").textContent =
+                        "Not available";
+                }
+
+                const initials = name
+                    .trim()
+                    .split(/\s+/)
+                    .map(word => word[0])
+                    .join("")
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                document.getElementById("avatarInitials").textContent = initials;
+                document.getElementById("navUserAvatar").textContent = initials;
+
+            } catch (error) {
+                console.error(error);
+
+                showToast(
+                    "Profile Error",
+                    "Unable to load your profile.",
+                    "error"
+                );
+            }
+        }
+
+        function setupDropdown() {
+            const btn = document.getElementById('userDropdownBtn');
+            const menu = document.getElementById('userDropdownMenu');
+            const arrow = document.getElementById('dropdownArrow');
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = menu.classList.contains('hidden');
+                if (isHidden) {
+                    menu.classList.remove('hidden');
+                    setTimeout(() => menu.classList.add('opacity-100', 'scale-100'), 10);
+                    arrow.style.transform = 'rotate(180deg)';
+                    btn.setAttribute('aria-expanded', 'true');
+                } else {
+                    menu.classList.remove('opacity-100', 'scale-100');
+                    menu.classList.add('hidden');
+                    arrow.style.transform = 'rotate(0deg)';
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            window.addEventListener('click', () => {
+                if (!menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    arrow.style.transform = 'rotate(0deg)';
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            const mobileBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        function toggleEditMode() {
+            isEditing = true;
+            originalValues = {
+                name: currentUser.username,
+                phone: currentUser.phone || ""
+            };
+
+            const nameInput = document.getElementById('fullNameInput');
+            const phoneInput = document.getElementById('phoneInput');
+            const actionButtons = document.getElementById('formActionButtons');
+            const editBadge = document.getElementById('editBadge');
+            const cardEditBtn = document.getElementById('cardEditBtn');
+
+            nameInput.removeAttribute('readonly');
+            phoneInput.removeAttribute('readonly');
+            nameInput.focus();
+
+            actionButtons.classList.remove('hidden');
+            editBadge.classList.remove('hidden');
+            cardEditBtn.disabled = true;
+            cardEditBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        function cancelEditMode() {
+            isEditing = false;
+            document.getElementById('fullNameInput').value = originalValues.name;
+            document.getElementById('phoneInput').value = originalValues.phone;
+            document.getElementById('fullNameInput').setAttribute('readonly', true);
+            document.getElementById('phoneInput').setAttribute('readonly', true);
+
+            document.getElementById('formActionButtons').classList.add('hidden');
+            document.getElementById('editBadge').classList.add('hidden');
+            
+            const cardEditBtn = document.getElementById('cardEditBtn');
+            cardEditBtn.disabled = false;
+            cardEditBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            hideErrors();
+        }
+
+        function hideErrors() {
+            document.getElementById('nameError').classList.add('hidden');
+            document.getElementById('phoneError').classList.add('hidden');
+            document.getElementById('phoneInput').classList.remove('border-rose-500');
+            document.getElementById('fullNameInput').classList.remove('border-rose-500');
+        }
+
+        async function handleSaveProfile(event) {
+            event.preventDefault();
+
+            hideErrors();
+
+            const name = document.getElementById("fullNameInput").value.trim();
+            const phone = document.getElementById("phoneInput").value.trim();
+
+            let isValid = true;
+
+            if (name.length < 2) {
+                document.getElementById("nameError").classList.remove("hidden");
+                document.getElementById("fullNameInput").classList.add("border-rose-500");
+                isValid = false;
+            }
+
+            const phoneRegex = /^\d{10}$/;
+
+            if (!phoneRegex.test(phone)) {
+                document.getElementById("phoneError").classList.remove("hidden");
+                document.getElementById("phoneInput").classList.add("border-rose-500");
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            const saveBtnText = document.getElementById("saveBtnText");
+            const saveSpinner = document.getElementById("saveSpinner");
+            const saveBtn = document.getElementById("saveChangesBtn");
+
+            saveBtnText.textContent = "Saving...";
+            saveSpinner.classList.remove("hidden");
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch("/api/user/profile", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        username: name,
+                        phone: phone
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Failed to update profile");
+                }
+
+                currentUser.username = data.username;
+                currentUser.phone = data.phone;
+
+                await loadUserProfile();
+
+                cancelEditMode();
+
+                showToast(
+                    "✓ Profile Updated",
+                    "Your profile has been updated successfully.",
+                    "success"
+                );
+
+            } catch (error) {
+                console.error(error);
+
+                showToast(
+                    "Update Failed",
+                    error.message,
+                    "error"
+                );
+
+            } finally {
+                saveBtnText.textContent = "Save Changes";
+                saveSpinner.classList.add("hidden");
+                saveBtn.disabled = false;
+            }
+        }
+
+        function triggerPhotoUpload() {
+            document.getElementById('photoUploadInput').click();
+        }
+
+        function handlePhotoSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Upload Error', 'File size exceeds 5MB limit.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatarImg = document.getElementById('avatarImageElement');
+                const initials = document.getElementById('avatarInitials');
+                
+                avatarImg.src = e.target.result;
+                avatarImg.classList.remove('hidden');
+                initials.classList.add('hidden');
+
+                showToast('✓ Photo Updated', 'Profile photo updated successfully.', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function openPasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            const content = document.getElementById('passwordModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closePasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            const content = document.getElementById('passwordModalContent');
+            modal.classList.remove('opacity-100');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('passwordForm').reset();
+                resetPasswordStrengthUI();
+            }, 300);
+        }
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function evaluatePasswordStrength(password) {
+            const bar1 = document.getElementById('strengthBar1');
+            const bar2 = document.getElementById('strengthBar2');
+            const bar3 = document.getElementById('strengthBar3');
+            const label = document.getElementById('strengthLabel');
+
+            const reqLength = document.getElementById('reqLength');
+            const reqUpper = document.getElementById('reqUpper');
+            const reqNumber = document.getElementById('reqNumber');
+            const reqSpecial = document.getElementById('reqSpecial');
+
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+            updateReqItem(reqLength, hasLength);
+            updateReqItem(reqUpper, hasUpper);
+            updateReqItem(reqNumber, hasNumber);
+            updateReqItem(reqSpecial, hasSpecial);
+
+            let score = 0;
+            if (hasLength) score++;
+            if (hasUpper) score++;
+            if (hasNumber && hasSpecial) score++;
+
+            bar1.className = 'rounded-full bg-slate-800 transition-colors';
+            bar2.className = 'rounded-full bg-slate-800 transition-colors';
+            bar3.className = 'rounded-full bg-slate-800 transition-colors';
+
+            if (password.length === 0) {
+                label.textContent = 'None';
+                label.className = 'font-semibold text-slate-400';
+                return;
+            }
+
+            if (score === 1) {
+                bar1.className = 'rounded-full bg-rose-500 transition-colors';
+                label.textContent = 'Weak';
+                label.className = 'font-semibold text-rose-400';
+            } else if (score === 2) {
+                bar1.className = 'rounded-full bg-amber-500 transition-colors';
+                bar2.className = 'rounded-full bg-amber-500 transition-colors';
+                label.textContent = 'Medium';
+                label.className = 'font-semibold text-amber-400';
+            } else if (score >= 3) {
+                bar1.className = 'rounded-full bg-emerald-500 transition-colors';
+                bar2.className = 'rounded-full bg-emerald-500 transition-colors';
+                bar3.className = 'rounded-full bg-emerald-500 transition-colors';
+                label.textContent = 'Strong';
+                label.className = 'font-semibold text-emerald-400';
+            }
+        }
+
+        function updateReqItem(element, isValid) {
+            const icon = element.querySelector('i');
+            if (isValid) {
+                element.className = 'flex items-center space-x-1 text-emerald-400 font-medium';
+                icon.className = 'fa-solid fa-check text-[10px] text-emerald-400';
+            } else {
+                element.className = 'flex items-center space-x-1 text-slate-400';
+                icon.className = 'fa-solid fa-circle text-[6px] text-slate-600';
+            }
+        }
+
+        function resetPasswordStrengthUI() {
+            document.getElementById('strengthLabel').textContent = 'None';
+            document.getElementById('strengthBar1').className = 'rounded-full bg-slate-800 transition-colors';
+            document.getElementById('strengthBar2').className = 'rounded-full bg-slate-800 transition-colors';
+            document.getElementById('strengthBar3').className = 'rounded-full bg-slate-800 transition-colors';
+            document.getElementById('passwordMatchError').classList.add('hidden');
+        }
+
+        async function handlePasswordChange(event) {
+            event.preventDefault();
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+            const matchError = document.getElementById('passwordMatchError');
+
+            if (newPass !== confirmPass) {
+                matchError.classList.remove('hidden');
+                return;
+            }
+            matchError.classList.add('hidden');
+
+            const btnText = document.getElementById('updatePasswordBtnText');
+            const spinner = document.getElementById('updatePasswordSpinner');
+            const btn = document.getElementById('updatePasswordBtn');
+
+            btnText.textContent = 'Updating...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btnText.textContent = 'Update Password';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+
+                closePasswordModal();
+                showToast('✓ Password Updated', 'Your account password has been updated securely.', 'success');
+            }, 900);
+        }
+
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const borderColor = type === 'success' ? 'border-sky-500/40 bg-slate-900/90 text-white' : 'border-rose-500/40 bg-slate-900/90 text-white';
+            const icon = type === 'success' ? 'fa-solid fa-circle-check text-sky-400' : 'fa-solid fa-circle-exclamation text-rose-400';
+
+            toast.className = `pointer-events-auto flex items-start space-x-3 p-4 rounded-2xl glass-panel border ${borderColor} shadow-2xl transform translate-y-4 opacity-0 transition-all duration-300 max-w-sm`;
+            toast.innerHTML = `
+                <div class="pt-0.5 text-lg"><i class="${icon}"></i></div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold">${title}</p>
+                    <p class="text-xs text-slate-300 mt-0.5">${message}</p>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xs"></i></button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch("/api/user/logout", {
+                    method: "POST",
+                    credentials: "same-origin"
+                });
+            } catch (error) {
+                console.error(error);
+            }
+
+            window.location.href = "/user/login";
+        }
+    </script>
+</body>
+</html>

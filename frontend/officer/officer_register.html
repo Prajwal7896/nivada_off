@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVADA — Officer Registration Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        nivada: {
+                            950: '#030712',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151',
+                            500: '#6b7280',
+                            400: '#9ca3af',
+                            300: '#d1d5db',
+                            200: '#e5e7eb',
+                            100: '#f3f4f6',
+                        },
+                        accent: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            glow: 'rgba(59, 130, 246, 0.15)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* Custom scrollbar for clean enterprise look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="bg-nivada-950 text-nivada-100 font-sans min-h-screen flex flex-col selection:bg-accent-500 selection:text-white">
+
+    <header class="border-b border-nivada-800 bg-nivada-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-accent-glow border border-blue-400/20">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <div>
+                <span class="text-lg font-bold tracking-wider text-white">NIVADA</span>
+                <span class="text-xs font-medium text-nivada-400 ml-2 border-l border-nivada-700 pl-2 hidden sm:inline">Officer Registration</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-6">
+            <div class="hidden md:flex items-center space-x-2 bg-nivada-800/60 border border-nivada-700/50 px-3 py-1 rounded-full text-xs text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Secure Registration</span>
+            </div>
+            <div class="text-xs text-nivada-400 flex items-center space-x-4">
+                <a href="/officer/login" class="hover:text-white transition">Already registered? <span class="text-accent-500 underline font-medium">Officer Login</span></a>
+                <a href="/" class="text-nivada-400 hover:text-white transition hidden sm:inline">← Back to Role Selection</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 gap-6">
+
+        <aside class="w-full lg:w-80 flex flex-col bg-nivada-900/50 border border-nivada-800/80 rounded-2xl p-4 sm:p-6 backdrop-blur-sm self-start">
+            <div class="mb-6 hidden lg:block">
+                <h2 class="text-xs uppercase tracking-wider text-nivada-400 font-semibold mb-1">Registration Process</h2>
+                <p class="text-sm text-nivada-300">Complete each section to configure your credentials.</p>
+            </div>
+
+            <!-- Mobile Progress Bar Slider -->
+            <div class="lg:hidden flex items-center justify-between overflow-x-auto pb-4 mb-2 space-x-3 no-scrollbar" id="mobile-steps-bar">
+                <!-- Injected dynamically or structured via JS -->
+            </div>
+
+            <!-- Desktop Vertical Steps List -->
+            <nav class="hidden lg:flex flex-col space-y-2" id="desktop-steps-list">
+                <!-- Steps generated via JS -->
+            </nav>
+
+            <div class="mt-8 pt-6 border-t border-nivada-800/60 hidden lg:block">
+                <div class="bg-nivada-950/60 rounded-xl p-4 border border-nivada-800/50">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-5 h-5 text-accent-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <p class="text-xs text-nivada-400 leading-relaxed">Officer accounts undergo automated verification against government personnel records prior to dashboard activation.</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="flex-1 bg-nivada-900/60 border border-nivada-800/80 rounded-2xl p-6 sm:p-8 md:p-10 backdrop-blur-sm flex flex-col justify-between shadow-2xl relative overflow-hidden" id="form-card-container">
+            <!-- Dynamic Form Area -->
+            <div id="step-content-area" class="flex-1 animate-fade-in">
+                <!-- Form steps populated dynamically -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Form Data State
+        const formData = {
+            name: '',
+            email: '',
+            phone: '',
+            employee_code: '',
+            designation: '',
+            department_id: '',
+            country_id: '',
+            state_id: '',
+            district_id: '',
+            taluka_id: '',
+            village_id: '',
+            password: '',
+            confirm_password: ''
+        };
+
+        let departments = [];
+        let countries = [];
+        let states = [];
+        let districts = [];
+        let talukas = [];
+        let villages = [];
+
+        // Navigation & Validation State
+        let currentStep = 1;
+        const totalSteps = 6;
+        let completedSteps = new Set();
+        let showPassword = false;
+        let showConfirmPassword = false;
+        let isSubmitting = false;
+
+        // Render Step Navigation UI
+        function renderSidebar() {
+            const stepsMeta = [
+                { num: 1, title: 'Personal Information', desc: 'Name, email and phone' },
+                { num: 2, title: 'Official Information', desc: 'Employee code & designation' },
+                { num: 3, title: 'Department', desc: "Officer's department" },
+                { num: 4, title: 'Jurisdiction', desc: 'Assigned geographic area' },
+                { num: 5, title: 'Security', desc: 'Password & account security' },
+                { num: 6, title: 'Verification', desc: 'Authorization & confirmation' }
+            ];
+
+            // Desktop Sidebar
+            const desktopList = document.getElementById('desktop-steps-list');
+            desktopList.innerHTML = stepsMeta.map(s => {
+                const isCurrent = currentStep === s.num;
+                const isCompleted = completedSteps.has(s.num);
+                
+                let ringColor = 'border-nivada-800 text-nivada-500 bg-nivada-950/40';
+                let textColor = 'text-nivada-400';
+                let titleColor = 'text-nivada-300';
+
+                if (isCurrent) {
+                    ringColor = 'border-accent-500 text-white bg-accent-600/20 shadow-lg shadow-accent-glow';
+                    textColor = 'text-white';
+                    titleColor = 'text-white font-semibold';
+                } else if (isCompleted) {
+                    ringColor = 'border-emerald-500/60 text-emerald-400 bg-emerald-500/10';
+                    textColor = 'text-nivana-300';
+                    titleColor = 'text-nivada-200';
+                }
+
+                const clickAttr = isCompleted || isCurrent ? `onclick="goToStep(${s.num})"` : '';
+                const cursorStyle = isCompleted || isCurrent ? 'cursor-pointer hover:border-nivada-600' : 'cursor-not-allowed opacity-60';
+
+                return `
+                    <div ${clickAttr} class="flex items-center space-x-3.5 p-3 rounded-xl border transition-all duration-200 ${ringColor} ${cursorStyle}">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 border border-current">
+                            ${isCompleted ? '✓' : String(s.num).padStart(2, '0')}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-medium ${titleColor} truncate">${s.num}. ${s.title}</div>
+                            <div class="text-[11px] ${textColor} truncate">${s.desc}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Mobile Horizontal Bar
+            const mobileBar = document.getElementById('mobile-steps-bar');
+            mobileBar.innerHTML = stepsMeta.map(s => {
+                const isCurrent = currentStep === s.num;
+                const isCompleted = completedSteps.has(s.num);
+                let badgeClass = 'bg-nivada-800 text-nivada-400 border-nivada-700';
+                if (isCurrent) badgeClass = 'bg-accent-600 text-white border-accent-500 ring-2 ring-accent-glow';
+                else if (isCompleted) badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
+
+                const clickAttr = isCompleted || isCurrent ? `onclick="goToStep(${s.num})"` : '';
+                return `
+                    <div ${clickAttr} class="flex items-center space-x-2 shrink-0 px-3 py-1.5 rounded-lg border text-xs font-mono font-medium ${badgeClass} cursor-pointer">
+                        <span>${isCompleted ? '✓' : String(s.num).padStart(2, '0')}</span>
+                        <span class="hidden sm:inline">${s.title.split(' ')[0]}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function goToStep(stepNum) {
+            if (stepNum < currentStep || completedSteps.has(stepNum) || stepNum === currentStep) {
+                currentStep = stepNum;
+                renderStep();
+                renderSidebar();
+            }
+        }
+
+        async function fetchJSON(url) {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`Request failed: ${url}`);
+            }
+
+            return await response.json();
+        }
+
+
+        async function loadDepartments() {
+            departments = await fetchJSON("/api/departments");
+        }
+
+
+        async function loadCountries() {
+            countries = await fetchJSON("/api/countries");
+        }
+
+
+        async function loadStates(countryId) {
+            states = await fetchJSON(`/api/states/${countryId}`);
+
+            districts = [];
+            talukas = [];
+            villages = [];
+
+            formData.state_id = '';
+            formData.district_id = '';
+            formData.taluka_id = '';
+            formData.village_id = '';
+        }
+
+
+        async function loadDistricts(stateId) {
+            districts = await fetchJSON(`/api/districts/${stateId}`);
+
+            talukas = [];
+            villages = [];
+
+            formData.district_id = '';
+            formData.taluka_id = '';
+            formData.village_id = '';
+        }
+
+
+        async function loadTalukas(districtId) {
+            talukas = await fetchJSON(`/api/talukas/${districtId}`);
+
+            villages = [];
+
+            formData.taluka_id = '';
+            formData.village_id = '';
+        }
+
+
+        async function loadVillages(talukaId) {
+            villages = await fetchJSON(`/api/villages/${talukaId}`);
+
+            formData.village_id = '';
+        }
+
+        // Render Current Form Step
+        function renderStep() {
+            const area = document.getElementById('step-content-area');
+            area.className = 'flex-1 animate-fade-in';
+            
+            switch(currentStep) {
+                case 1: area.innerHTML = renderStep1(); break;
+                case 2: area.innerHTML = renderStep2(); break;
+                case 3: area.innerHTML = renderStep3(); break;
+                case 4: area.innerHTML = renderStep4(); break;
+                case 5: area.innerHTML = renderStep5(); break;
+                case 6: area.innerHTML = renderStep6(); break;
+            }
+        }
+
+        // --- STEP 1 FORM ---
+        function renderStep1() {
+            return `
+                <div>
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">Step 01 of 06</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">Personal Information</h2>
+                        <p class="text-sm text-nivada-400 mt-0.5">Tell us about yourself to initiate your officer profile.</p>
+                    </div>
+
+                    <form id="step1-form" onsubmit="handleStep1Submit(event)" class="space-y-5 max-w-xl">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Full Name</label>
+                            <input type="text" id="input-name" required value="${formData.name}" placeholder="e.g. Rajesh Kumar Sharma"
+                                class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Official Email</label>
+                            <input type="email" id="input-email" required value="${formData.email}" placeholder="rajesh.sharma@nivada.gov.in"
+                                class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Phone Number</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3.5 rounded-l-xl border border-r-0 border-nivada-700/80 bg-nivada-900 text-nivada-400 text-sm font-mono">+91</span>
+                                <input type="tel" id="input-phone" required value="${formData.phone}" placeholder="98765 43210" pattern="[0-9]{10}"
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-r-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition">
+                            </div>
+                            <span class="text-[11px] text-nivada-500 mt-1 block">Enter 10-digit mobile number without country code.</span>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-end">
+                            <button type="submit" class="bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow flex items-center space-x-2 group">
+                                <span>Continue</span>
+                                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+        function handleStep1Submit(e) {
+            e.preventDefault();
+            const name = document.getElementById('input-name').value.trim();
+            const email = document.getElementById('input-email').value.trim();
+            const phone = document.getElementById('input-phone').value.trim();
+
+            if (!name || !email || !phone) return;
+
+            formData.name = name;
+            formData.email = email;
+            formData.phone = phone;
+
+            completedSteps.add(1);
+            currentStep = 2;
+            renderStep();
+            renderSidebar();
+        }
+
+        // --- STEP 2 FORM ---
+        function renderStep2() {
+            return `
+                <div>
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">Step 02 of 06</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">Official Information</h2>
+                        <p class="text-sm text-nivada-400 mt-0.5">Enter your official employment credentials and department designation.</p>
+                    </div>
+
+                    <form id="step2-form" onsubmit="handleStep2Submit(event)" class="space-y-5 max-w-xl">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Employee Code</label>
+                            <input type="text" id="input-employee-code" required value="${formData.employee_code}" placeholder="e.g. NIV-ENG-8492"
+                                class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition font-mono uppercase">
+                            <span class="text-[11px] text-nivada-500 mt-1 block">Must be unique across municipal personnel records.</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Designation</label>
+                            <input type="text" id="input-designation" required value="${formData.designation}" placeholder="e.g. Junior Engineer"
+                                class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition">
+                            <span class="text-[11px] text-nivada-500 mt-1 block">Example: Junior Engineer, Sanitation Inspector, Grid Supervisor</span>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-between">
+                            <button type="button" onclick="goToStep(1)" class="bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-5 py-3 rounded-xl text-sm transition flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                <span>Back</span>
+                            </button>
+                            <button type="submit" class="bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow flex items-center space-x-2 group">
+                                <span>Continue</span>
+                                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+        function handleStep2Submit(e) {
+            e.preventDefault();
+            const employee_code = document.getElementById('input-employee-code').value.trim();
+            const designation = document.getElementById('input-designation').value.trim();
+
+            if (!employee_code || !designation) return;
+
+            formData.employee_code = employee_code;
+            formData.designation = designation;
+
+            completedSteps.add(2);
+            currentStep = 3;
+            renderStep();
+            renderSidebar();
+        }
+
+        // --- STEP 3 FORM ---
+        function renderStep3() {
+            return `
+                <div>
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">
+                            Step 03 of 06
+                        </span>
+
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">
+                            Department Assignment
+                        </h2>
+
+                        <p class="text-sm text-nivada-400 mt-0.5">
+                            Select the municipal department responsible for your civic jurisdiction.
+                        </p>
+                    </div>
+
+                    <form id="step3-form"
+                        onsubmit="handleStep3Submit(event)"
+                        class="space-y-5 max-w-xl">
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300">
+                                    Select Department
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="dept-search"
+                                    oninput="filterDepartments(this.value)"
+                                    placeholder="Search department..."
+                                    class="bg-nivada-950/80 border border-nivada-700/80 rounded-lg px-2.5 py-1 text-xs text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 w-48"
+                                >
+
+                            </div>
+
+                            <div
+                                class="max-h-64 overflow-y-auto border border-nivada-700/80 rounded-xl bg-nivada-950/80 p-2 space-y-1.5"
+                                id="department-list-container"
+                            >
+                                ${renderDepartmentOptions(departments)}
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-between">
+
+                            <button
+                                type="button"
+                                onclick="goToStep(2)"
+                                class="bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-5 py-3 rounded-xl text-sm transition flex items-center space-x-2"
+                            >
+                                ←
+                                <span>Back</span>
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow"
+                            >
+                                Continue →
+                            </button>
+
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+
+        function renderDepartmentOptions(list) {
+            if (!list.length) {
+                return `
+                    <div class="p-4 text-center text-sm text-nivada-500">
+                        No departments found.
+                    </div>
+                `;
+            }
+
+            return list.map(d => `
+                <label class="flex items-center space-x-3 p-2.5 rounded-lg hover:bg-nivada-900/80 cursor-pointer transition border border-transparent ${
+                    String(formData.department_id) === String(d.id)
+                        ? 'bg-accent-600/10 border-accent-500/40 text-white'
+                        : 'text-nivada-300'
+                }">
+
+                    <input
+                        type="radio"
+                        name="department_id"
+                        value="${d.id}"
+                        ${String(formData.department_id) === String(d.id) ? 'checked' : ''}
+                        class="text-accent-600 focus:ring-accent-500 bg-nivada-900 border-nivada-700"
+                        required
+                    >
+
+                    <span class="text-sm font-medium">
+                        ${d.name}
+                    </span>
+
+                </label>
+            `).join('');
+        }
+
+
+        function filterDepartments(query) {
+            const q = query.toLowerCase().trim();
+
+            const filtered = departments.filter(d =>
+                d.name.toLowerCase().includes(q)
+            );
+
+            document.getElementById('department-list-container').innerHTML =
+                renderDepartmentOptions(filtered);
+        }
+
+
+        function handleStep3Submit(e) {
+            e.preventDefault();
+
+            const selected =
+                document.querySelector('input[name="department_id"]:checked');
+
+            if (!selected) {
+                return;
+            }
+
+            formData.department_id = selected.value;
+
+            completedSteps.add(3);
+            currentStep = 4;
+
+            renderStep();
+            renderSidebar();
+        }
+
+        // --- STEP 4 FORM ---
+       function renderStep4() {
+            return `
+                <div>
+
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">
+                            Step 04 of 06
+                        </span>
+
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">
+                            Assigned Jurisdiction
+                        </h2>
+
+                        <p class="text-sm text-nivada-400 mt-0.5">
+                            Select your authorized geographic work hierarchy step by step.
+                        </p>
+                    </div>
+
+                    <form
+                        id="step4-form"
+                        onsubmit="handleStep4Submit(event)"
+                        class="space-y-4 max-w-xl"
+                    >
+
+                        <div class="bg-nivada-950/60 p-3.5 rounded-xl border border-nivada-800/80 font-mono text-xs text-nivada-400 space-y-1">
+
+                            <div class="flex items-center space-x-2 text-white font-semibold">
+                                <span class="text-accent-500">📍</span>
+                                <span>
+                                    Country:
+                                    <span class="text-nivada-200">
+                                        ${getCountryName(formData.country_id)}
+                                    </span>
+                                </span>
+                            </div>
+
+                            <div class="pl-4 border-l border-nivada-800 ml-2 space-y-1 py-1">
+
+                                <div>
+                                    State:
+                                    <span class="text-nivada-200">
+                                        ${getStateName(formData.state_id)}
+                                    </span>
+                                </div>
+
+                                <div class="pl-4 border-l border-nivada-800 ml-2">
+
+                                    <div>
+                                        District:
+                                        <span class="text-nivada-200">
+                                            ${getDistrictName(formData.district_id)}
+                                        </span>
+                                    </div>
+
+                                    <div class="pl-4 border-l border-nivada-800 ml-2">
+
+                                        <div>
+                                            Taluka:
+                                            <span class="text-nivada-200">
+                                                ${getTalukaName(formData.taluka_id)}
+                                            </span>
+                                        </div>
+
+                                        <div class="pl-4 border-l border-nivada-800 ml-2">
+
+                                            <div>
+                                                Village:
+                                                <span class="text-nivada-200">
+                                                    ${getVillageName(formData.village_id)}
+                                                </span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1">
+                                Country
+                            </label>
+
+                            <select
+                                onchange="onCountryChange(this.value)"
+                                required
+                                class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500"
+                            >
+                                <option value="">Select Country...</option>
+
+                                ${countries.map(c => `
+                                    <option
+                                        value="${c.id}"
+                                        ${String(formData.country_id) === String(c.id) ? 'selected' : ''}
+                                    >
+                                        ${c.name}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1">
+                                    State
+                                </label>
+
+                                <select
+                                    onchange="onStateChange(this.value)"
+                                    ${!formData.country_id ? 'disabled' : ''}
+                                    required
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 disabled:opacity-50"
+                                >
+                                    <option value="">Select State...</option>
+
+                                    ${states.map(s => `
+                                        <option
+                                            value="${s.id}"
+                                            ${String(formData.state_id) === String(s.id) ? 'selected' : ''}
+                                        >
+                                            ${s.name}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1">
+                                    District
+                                </label>
+
+                                <select
+                                    onchange="onDistrictChange(this.value)"
+                                    ${!formData.state_id ? 'disabled' : ''}
+                                    required
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 disabled:opacity-50"
+                                >
+                                    <option value="">Select District...</option>
+
+                                    ${districts.map(d => `
+                                        <option
+                                            value="${d.id}"
+                                            ${String(formData.district_id) === String(d.id) ? 'selected' : ''}
+                                        >
+                                            ${d.name}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+                        </div>
+
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1">
+                                    Taluka
+                                </label>
+
+                                <select
+                                    onchange="onTalukaChange(this.value)"
+                                    ${!formData.district_id ? 'disabled' : ''}
+                                    required
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 disabled:opacity-50"
+                                >
+                                    <option value="">Select Taluka...</option>
+
+                                    ${talukas.map(t => `
+                                        <option
+                                            value="${t.id}"
+                                            ${String(formData.taluka_id) === String(t.id) ? 'selected' : ''}
+                                        >
+                                            ${t.name}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1">
+                                    Village / Ward
+                                </label>
+
+                                <select
+                                    onchange="onVillageChange(this.value)"
+                                    ${!formData.taluka_id ? 'disabled' : ''}
+                                    required
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 disabled:opacity-50"
+                                >
+                                    <option value="">Select Village...</option>
+
+                                    ${villages.map(v => `
+                                        <option
+                                            value="${v.id}"
+                                            ${String(formData.village_id) === String(v.id) ? 'selected' : ''}
+                                        >
+                                            ${v.name}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+
+                        <div class="pt-4 flex items-center justify-between">
+
+                            <button
+                                type="button"
+                                onclick="goToStep(3)"
+                                class="bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-5 py-3 rounded-xl text-sm transition"
+                            >
+                                ← Back
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow"
+                            >
+                                Continue →
+                            </button>
+
+                        </div>
+
+                    </form>
+                </div>
+            `;
+        }
+        function getCountryName(id) {
+            const item = countries.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+
+
+        function getStateName(id) {
+            const item = states.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+
+
+        function getDistrictName(id) {
+            const item = districts.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+
+
+        function getTalukaName(id) {
+            const item = talukas.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+
+
+        function getVillageName(id) {
+            const item = villages.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+
+        async function onCountryChange(value) {
+            formData.country_id = value;
+
+            states = [];
+            districts = [];
+            talukas = [];
+            villages = [];
+
+            formData.state_id = '';
+            formData.district_id = '';
+            formData.taluka_id = '';
+            formData.village_id = '';
+
+            if (value) {
+                await loadStates(value);
+            }
+
+            renderStep();
+        }
+
+
+        async function onStateChange(value) {
+            formData.state_id = value;
+
+            districts = [];
+            talukas = [];
+            villages = [];
+
+            formData.district_id = '';
+            formData.taluka_id = '';
+            formData.village_id = '';
+
+            if (value) {
+                await loadDistricts(value);
+            }
+
+            renderStep();
+        }
+
+
+        async function onDistrictChange(value) {
+            formData.district_id = value;
+
+            talukas = [];
+            villages = [];
+
+            formData.taluka_id = '';
+            formData.village_id = '';
+
+            if (value) {
+                await loadTalukas(value);
+            }
+
+            renderStep();
+        }
+
+
+        async function onTalukaChange(value) {
+            formData.taluka_id = value;
+
+            villages = [];
+
+            formData.village_id = '';
+
+            if (value) {
+                await loadVillages(value);
+            }
+
+            renderStep();
+        }
+
+
+        function onVillageChange(value) {
+            formData.village_id = value;
+            renderStep();
+        }
+
+        // --- STEP 5 FORM ---
+        function renderStep5() {
+            return `
+                <div>
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">Step 05 of 06</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">Secure Your Account</h2>
+                        <p class="text-sm text-nivada-400 mt-0.5">Create an enterprise-grade secure password for your officer portal session.</p>
+                    </div>
+
+                    <form id="step5-form" onsubmit="handleStep5Submit(event)" class="space-y-5 max-w-xl">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Password</label>
+                            <div class="relative">
+                                <input type="${showPassword ? 'text' : 'password'}" id="input-password" required oninput="evaluatePassword(this.value)" value="${formData.password}" placeholder="••••••••••••"
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 transition">
+                                <button type="button" onclick="togglePasswordVisibility('password')" class="absolute right-3 top-3 text-nivada-400 hover:text-white text-xs font-medium">
+                                    ${showPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-nivada-300 mb-1.5">Confirm Password</label>
+                            <div class="relative">
+                                <input type="${showConfirmPassword ? 'text' : 'password'}" id="input-confirm-password" required oninput="formData.confirm_password = this.value" value="${formData.confirm_password}" placeholder="••••••••••••"
+                                    class="w-full bg-nivada-950/80 border border-nivada-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-nivada-600 focus:outline-none focus:border-accent-500 transition">
+                                <button type="button" onclick="togglePasswordVisibility('confirm')" class="absolute right-3 top-3 text-nivada-400 hover:text-white text-xs font-medium">
+                                    ${showConfirmPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Password Strength & Checklist -->
+                        <div class="bg-nivada-950/60 p-4 rounded-xl border border-nivada-800 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-nivada-400">Password Strength</span>
+                                <span id="pwd-strength-label" class="text-xs font-mono font-bold text-nivada-500">Weak</span>
+                            </div>
+                            <div class="w-full bg-nivada-900 h-1.5 rounded-full overflow-hidden">
+                                <div id="pwd-strength-bar" class="bg-red-500 h-full w-1/5 transition-all duration-300"></div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-xs font-medium">
+                                <div id="req-len" class="flex items-center space-x-2 text-nivada-500"><span class="text-base">○</span><span>8+ characters</span></div>
+                                <div id="req-upper" class="flex items-center space-x-2 text-nivada-500"><span class="text-base">○</span><span>Uppercase letter</span></div>
+                                <div id="req-lower" class="flex items-center space-x-2 text-nivada-500"><span class="text-base">○</span><span>Lowercase letter</span></div>
+                                <div id="req-num" class="flex items-center space-x-2 text-nivada-500"><span class="text-base">○</span><span>Number</span></div>
+                                <div id="req-spec" class="flex items-center space-x-2 text-nivada-500"><span class="text-base">○</span><span>Special character</span></div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-between">
+                            <button type="button" onclick="goToStep(4)" class="bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-5 py-3 rounded-xl text-sm transition flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                <span>Back</span>
+                            </button>
+                            <button type="submit" id="pwd-continue-btn" disabled class="bg-accent-600/50 cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg flex items-center space-x-2 group">
+                                <span>Continue</span>
+                                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
+        function togglePasswordVisibility(field) {
+            if (field === 'password') showPassword = !showPassword;
+            if (field === 'confirm') showConfirmPassword = !showConfirmPassword;
+            renderStep();
+            if (formData.password) evaluatePassword(formData.password);
+        }
+
+        function evaluatePassword(pwd) {
+            formData.password = pwd;
+            
+            const hasLen = pwd.length >= 8;
+            const hasUpper = /[A-Z]/.test(pwd);
+            const hasLower = /[a-z]/.test(pwd);
+            const hasNum = /[0-9]/.test(pwd);
+            const hasSpec = /[^A-Za-z0-9]/.test(pwd);
+
+            updateCheckItem('req-len', hasLen);
+            updateCheckItem('req-upper', hasUpper);
+            updateCheckItem('req-lower', hasLower);
+            updateCheckItem('req-num', hasNum);
+            updateCheckItem('req-spec', hasSpec);
+
+            const score = [hasLen, hasUpper, hasLower, hasNum, hasSpec].filter(Boolean).length;
+            const bar = document.getElementById('pwd-strength-bar');
+            const label = document.getElementById('pwd-strength-label');
+            const btn = document.getElementById('pwd-continue-btn');
+
+            let width = '20%';
+            let color = 'bg-red-500';
+            let text = 'Weak';
+
+            if (score >= 3 && score < 5) {
+                width = '60%';
+                color = 'bg-amber-500';
+                text = 'Medium';
+            } else if (score === 5) {
+                width = '100%';
+                color = 'bg-emerald-500';
+                text = 'Strong';
+            }
+
+            bar.className = `${color} h-full transition-all duration-300`;
+            bar.style.width = width;
+            label.innerText = text;
+            label.className = `text-xs font-mono font-bold ${score === 5 ? 'text-emerald-400' : score >= 3 ? 'text-amber-400' : 'text-red-400'}`;
+
+            const passwordsMatch = formData.password === formData.confirm_password && formData.password.length > 0;
+
+            if (score === 5 && passwordsMatch) {
+                btn.disabled = false;
+                btn.className = "bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow flex items-center space-x-2 group cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "bg-accent-600/50 cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg flex items-center space-x-2 group";
+            }
+        }
+
+        function updateCheckItem(elementId, isValid) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (isValid) {
+                el.className = "flex items-center space-x-2 text-emerald-400";
+                el.children[0].innerText = "✓";
+            } else {
+                el.className = "flex items-center space-x-2 text-nivada-500";
+                el.children[0].innerText = "○";
+            }
+        }
+
+        function handleStep5Submit(e) {
+            e.preventDefault();
+            if (formData.password !== formData.confirm_password) return;
+
+            completedSteps.add(5);
+            currentStep = 6;
+            renderStep();
+            renderSidebar();
+        }
+
+        // --- STEP 6 FORM (VERIFICATION SUMMARY) ---
+        function renderStep6() {
+            const deptObj = departments.find(
+                d => String(d.id) === String(formData.department_id)
+            );
+
+            return `
+                <div>
+                    <div class="mb-6">
+                        <span class="text-xs font-mono uppercase tracking-widest text-accent-500">Step 06 of 06</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white mt-1">Officer Verification</h2>
+                        <p class="text-sm text-nivada-400 mt-0.5">Confirm your official registration details before submitting.</p>
+                    </div>
+
+                    <div class="space-y-6 max-w-2xl">
+                        <!-- Summary Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Personal -->
+                            <div class="bg-nivada-950/60 p-4 rounded-xl border border-nivada-800/80 relative group">
+                                <div class="flex items-center justify-between mb-2 pb-2 border-b border-nivada-800/60">
+                                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-accent-500">Personal</span>
+                                    <button onclick="goToStep(1)" class="text-xs text-nivada-400 hover:text-white underline">Edit</button>
+                                </div>
+                                <div class="space-y-1.5 text-xs">
+                                    <div class="flex justify-between"><span class="text-nivada-400">Full Name</span><span class="text-white font-medium">${formData.name}</span></div>
+                                    <div class="flex justify-between"><span class="text-nivada-400">Official Email</span><span class="text-white font-medium">${formData.email}</span></div>
+                                    <div class="flex justify-between"><span class="text-nivada-400">Phone</span><span class="text-white font-medium">+91 ${formData.phone}</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Official -->
+                            <div class="bg-nivada-950/60 p-4 rounded-xl border border-nivada-800/80 relative group">
+                                <div class="flex items-center justify-between mb-2 pb-2 border-b border-nivada-800/60">
+                                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-accent-500">Official</span>
+                                    <button onclick="goToStep(2)" class="text-xs text-nivada-400 hover:text-white underline">Edit</button>
+                                </div>
+                                <div class="space-y-1.5 text-xs">
+                                    <div class="flex justify-between"><span class="text-nivada-400">Employee Code</span><span class="text-white font-mono font-semibold">${formData.employee_code}</span></div>
+                                    <div class="flex justify-between"><span class="text-nivada-400">Designation</span><span class="text-white font-medium">${formData.designation}</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Department -->
+                            <div class="bg-nivada-950/60 p-4 rounded-xl border border-nivada-800/80 relative group">
+                                <div class="flex items-center justify-between mb-2 pb-2 border-b border-nivada-800/60">
+                                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-accent-500">Department</span>
+                                    <button onclick="goToStep(3)" class="text-xs text-nivada-400 hover:text-white underline">Edit</button>
+                                </div>
+                                <div class="space-y-1.5 text-xs">
+                                    <div class="flex justify-between"><span class="text-nivada-400">Assigned Department</span><span class="text-white font-medium text-right">${deptObj ? deptObj.name : ''}</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Jurisdiction -->
+                            <div class="bg-nivada-950/60 p-4 rounded-xl border border-nivada-800/80 relative group">
+                                <div class="flex items-center justify-between mb-2 pb-2 border-b border-nivada-800/60">
+                                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-accent-500">Jurisdiction</span>
+                                    <button onclick="goToStep(4)" class="text-xs text-nivada-400 hover:text-white underline">Edit</button>
+                                </div>
+                                <div class="space-y-1.5 text-xs">
+                                    <div class="flex justify-between"><span class="text-nivada-400">State / District</span><span class="text-white">${getStateName(formData.state_id)} / ${getDistrictName(formData.district_id)}</span></div>
+                                    <div class="flex justify-between"><span class="text-nivada-400">Taluka / Ward</span><span class="text-white">${getTalukaName(formData.taluka_id)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Authorization Checkbox & Notice -->
+                        <div class="bg-nivada-950/80 p-5 rounded-2xl border border-nivada-800 space-y-4">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="auth-checkbox" onchange="toggleAuthCheckbox(this.checked)" class="mt-1 text-accent-600 rounded bg-nivada-900 border-nivada-700 focus:ring-accent-500">
+                                <span class="text-xs text-nivada-200 leading-relaxed font-medium">I confirm that I am authorized to register as an officer and that the information provided is accurate according to municipal records.</span>
+                            </label>
+
+                            <div class="flex items-start space-x-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-amber-300 text-xs">
+                                <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span>Your officer account may require verification before dashboard access is fully activated.</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 flex items-center justify-between">
+                            <button type="button" onclick="goToStep(5)" class="bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-5 py-3 rounded-xl text-sm transition flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                <span>Back</span>
+                            </button>
+                            <button type="button" id="final-submit-btn" disabled onclick="submitOfficerRegistration()" class="bg-accent-600/50 cursor-not-allowed text-white font-medium px-8 py-3 rounded-xl text-sm transition shadow-lg flex items-center space-x-2">
+                                <span>Create Officer Account</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleAuthCheckbox(checked) {
+            const btn = document.getElementById('final-submit-btn');
+            if (checked) {
+                btn.disabled = false;
+                btn.className = "bg-accent-600 hover:bg-accent-500 text-white font-medium px-8 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow flex items-center space-x-2 cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "bg-accent-600/50 cursor-not-allowed text-white font-medium px-8 py-3 rounded-xl text-sm transition shadow-lg flex items-center space-x-2";
+            }
+        }
+
+        // --- SUBMISSION & LOADING SCREEN ---
+        async function submitOfficerRegistration() {
+            if (isSubmitting) return;
+
+            isSubmitting = true;
+
+            const form = new FormData();
+
+            form.append("name", formData.name);
+            form.append("email", formData.email);
+            form.append("phone", formData.phone);
+            form.append("employee_code", formData.employee_code);
+            form.append("designation", formData.designation);
+            form.append("department_id", formData.department_id);
+            form.append("country_id", formData.country_id);
+            form.append("state_id", formData.state_id);
+            form.append("district_id", formData.district_id);
+            form.append("taluka_id", formData.taluka_id);
+            form.append("village_id", formData.village_id);
+            form.append("password", formData.password);
+            form.append("confirm_password", formData.confirm_password);
+
+            try {
+                const response = await fetch("/officer/register", {
+                    method: "POST",
+                    body: form
+                });
+
+                const result = await response.json();
+
+                console.log("Registration response:", result);
+
+                if (!response.ok || !result.success) {
+                    alert(result.message || "Officer registration failed.");
+                    isSubmitting = false;
+                    return;
+                }
+
+                renderSuccessScreen();
+
+            } catch (error) {
+                console.error("Registration error:", error);
+                alert("Unable to connect to server.");
+                isSubmitting = false;
+            }
+        }
+
+        function updateLoadingStep(stepIndex, text) {
+            const statusTxt = document.getElementById('loading-status-text');
+            if (statusTxt) statusTxt.innerText = text;
+
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById(`prog-${i}`);
+                if (!el) continue;
+                if (i < stepIndex) {
+                    el.className = "flex items-center space-x-2 text-emerald-400";
+                    el.children[0].innerText = "✓";
+                } else if (i === stepIndex) {
+                    el.className = "flex items-center space-x-2 text-accent-400 font-semibold";
+                    el.children[0].className = "animate-spin";
+                    el.children[0].innerText = "⚡";
+                }
+            }
+        }
+
+        // --- SUCCESS SCREEN ---
+        function renderSuccessScreen() {
+            const container = document.getElementById('form-card-container');
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 text-center space-y-6 animate-fade-in my-auto max-w-lg mx-auto">
+                    <div class="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
+                        <svg class="w-10 h-10 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-bold text-white tracking-wide">Registration Submitted Successfully</h2>
+                        <p class="text-sm text-nivada-300 leading-relaxed">Your NIVADA officer account has been created successfully. Complete verification before accessing the Officer Dashboard.</p>
+                    </div>
+
+                    <div class="bg-nivada-950/80 p-4 rounded-xl border border-nivada-800 w-full flex items-center justify-between font-mono text-xs">
+                        <span class="text-nivada-400">Assigned Employee Code:</span>
+                        <span class="text-accent-400 font-bold uppercase tracking-wider">${formData.employee_code}</span>
+                    </div>
+
+                    <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+                        <a href="/officer/login" class="w-full sm:w-auto bg-accent-600 hover:bg-accent-500 text-white font-medium px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-accent-glow text-center">
+                            Go to Officer Login
+                        </a>
+                        <a href="/" class="w-full sm:w-auto bg-nivada-800 hover:bg-nivada-700 text-nivada-200 font-medium px-6 py-3 rounded-xl text-sm transition text-center">
+                            Back to Role Selection
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            // Hide sidebar or mark all completed
+            completedSteps = new Set([1, 2, 3, 4, 5, 6]);
+            renderSidebar();
+        }
+
+        // Initialize on load
+        window.onload = async function() {
+            renderSidebar();
+            renderStep();
+
+            try {
+                await Promise.all([
+                    loadDepartments(),
+                    loadCountries()
+                ]);
+
+                renderStep();
+
+            } catch (error) {
+                console.error(error);
+
+                alert("Unable to load database data. Please check the server.");
+            }
+        };
+    </script>
+</body>
+</html>

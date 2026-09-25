@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIVADA - AI Civic Intelligence & Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{navy:{950:"#060913",900:"#090d16",800:"#0e1526"}},fontFamily:{sans:["Inter","sans-serif"]}}}};</script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body{font-family:"Inter",sans-serif;background-color:#060913;color:#f1f5f9;overflow-x:hidden}
+        .glass{background:rgba(14,21,38,0.75);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.37)}
+        .glass-input{background:rgba(6,9,19,0.6);border:1px solid rgba(255,255,255,0.12);color:#fff}
+        .glass-input:focus{outline:none;border-color:#22d3ee;box-shadow:0 0 10px rgba(34,211,238,0.2)}
+        .glass-input option{background:#090d16;color:white}
+        .custom-scrollbar::-webkit-scrollbar{width:5px;height:5px}
+        .custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
+        @keyframes pulse-glow{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.1)}}
+        .live-dot{animation:pulse-glow 2s infinite ease-in-out}
+    </style>
+</head>
+<body class="bg-navy-950 min-h-screen flex flex-col">
+<header class="sticky top-0 z-50 glass border-b border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20"><i class="fa-solid fa-chart-line text-white"></i></div>
+        <div>
+            <h1 class="font-bold tracking-wider text-sm sm:text-base text-white flex items-center gap-2">NIVADA <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">GovTech v4.2</span></h1>
+            <p class="text-[9px] text-slate-400 uppercase tracking-widest font-semibold">AI Civic Intelligence</p>
+        </div>
+    </div>
+        <nav class="hidden md:flex items-center space-x-1 text-xs">
+            <a href="/user/dashboard" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">
+                Dashboard
+            </a>
+            <a href="/user/map" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">
+                Map
+            </a>
+        </nav>
+    </nav>
+    </nav>
+    <div class="flex items-center space-x-3">
+        <div class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs"><span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span><span>Session Active</span></div>
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white">NV</div>
+    </div>
+</header>
+<div class="px-4 sm:px-6 py-4 bg-navy-900/60 border-b border-white/5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+        <div class="flex items-center space-x-2 text-[10px] text-cyan-400 font-bold uppercase tracking-wider mb-1"><span class="w-2 h-2 rounded-full bg-cyan-400 live-dot"></span><span>LIVE CIVIC INTELLIGENCE</span><span class="text-slate-500">|</span><span id="breadcrumb-display" class="text-slate-300">India</span></div>
+        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Complaint Intelligence & Analytics</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Analyze civic complaints, resolution performance, service issues, and AI-generated insights.</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="refreshInsights()" id="refresh-btn" class="glass px-3.5 py-2 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white hover:bg-cyan-500/20 transition flex items-center gap-2"><i class="fa-solid fa-rotate"></i> Refresh Insights</button>
+        <button onclick="exportReport()" class="bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/20 hover:opacity-95 transition flex items-center gap-2"><i class="fa-solid fa-download"></i> Export CSV</button>
+    </div>
+</div>
+<main class="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
+    <!-- FILTERS -->
+    <div class="glass p-4 rounded-2xl space-y-3">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-filter"></i> ANALYTICS FILTERS</span>
+            <span id="last-updated" class="text-[10px] text-slate-400">Last updated: --</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+            <select id="filter-country" class="glass-input rounded-xl px-3 py-2"><option value="">All Countries</option></select>
+            <select id="filter-state" class="glass-input rounded-xl px-3 py-2"><option value="">All States</option></select>
+            <select id="filter-district" class="glass-input rounded-xl px-3 py-2"><option value="">All Districts</option></select>
+            <select id="filter-taluka" class="glass-input rounded-xl px-3 py-2"><option value="">All Talukas</option></select>
+            <select id="filter-village" class="glass-input rounded-xl px-3 py-2"><option value="">All Villages</option></select>
+            <select id="filter-days" class="glass-input rounded-xl px-3 py-2">
+                <option value="7">Last 7 Days</option><option value="30" selected>Last 30 Days</option><option value="90">Last 90 Days</option><option value="365">Last 365 Days</option><option value="0">All Time</option>
+            </select>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1 border-t border-white/5">
+            <select id="filter-category" class="glass-input rounded-xl px-3 py-2"><option value="">All Categories</option></select>
+            <select id="filter-department" class="glass-input rounded-xl px-3 py-2"><option value="">All Departments</option></select>
+            <select id="filter-status" class="glass-input rounded-xl px-3 py-2"><option value="">All Statuses</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="rejected">Rejected</option></select>
+            <select id="filter-priority" class="glass-input rounded-xl px-3 py-2"><option value="">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+        </div>
+        <div id="filter-chips" class="flex flex-wrap items-center gap-2 pt-1 text-[11px]"></div>
+    </div>
+    <!-- KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Total</span><p id="kpi-total" class="text-xl font-bold text-white">--</p><span class="text-[10px] text-slate-400">Complaints</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Pending</span><p id="kpi-pending" class="text-xl font-bold text-amber-400">--</p><span class="text-[10px] text-slate-400">Requires action</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-blue-400 uppercase tracking-wider font-semibold">In Progress</span><p id="kpi-inprogress" class="text-xl font-bold text-blue-400">--</p><span class="text-[10px] text-slate-400">Active dispatch</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Resolved</span><p id="kpi-resolved" class="text-xl font-bold text-emerald-400">--</p><span class="text-[10px] text-slate-400">Closed</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-rose-400 uppercase tracking-wider font-semibold">Rejected</span><p id="kpi-rejected" class="text-xl font-bold text-rose-400">--</p><span class="text-[10px] text-slate-400">Invalid/Duplicate</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Resolution Rate</span><p id="kpi-rate" class="text-xl font-bold text-cyan-300">--</p><span class="text-[10px] text-slate-400">Resolved / Total</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-purple-400 uppercase tracking-wider font-semibold">Avg Resolution</span><p id="kpi-avg-time" class="text-xl font-bold text-purple-300">--</p><span class="text-[10px] text-slate-400">Days</span></div>
+        <div class="glass p-3.5 rounded-2xl space-y-1"><span class="text-[10px] text-indigo-400 uppercase tracking-wider font-semibold">SLA</span><p id="kpi-sla" class="text-xl font-bold text-indigo-300">--</p><span class="text-[10px] text-slate-400">Available data</span></div>
+    </div>
+    <!-- TREND + STATUS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="glass p-5 rounded-2xl lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">Complaint Volume Trend</h3>
+                    <p class="text-xs text-slate-400">Complaint filings over selected timeline</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold">TimeSeries</span>
+            </div>
+            <div class="h-72 relative"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="glass p-5 rounded-2xl space-y-4 flex flex-col">
+            <div>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Status Distribution</h3>
+                <p class="text-xs text-slate-400">Workflow state distribution</p>
+            </div>
+            <div class="flex-1 flex items-center justify-center relative min-h-[220px]"><canvas id="statusDonutChart"></canvas></div>
+            <div id="status-legend" class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-white/5"></div>
+        </div>
+    </div>
+    <!-- PIE CHARTS -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="glass p-5 rounded-2xl space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-wider">Status Breakdown</h3><div class="h-48 relative flex items-center justify-center"><canvas id="chartStatusPie"></canvas></div></div>
+        <div class="glass p-5 rounded-2xl space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-wider">Priority Classification</h3><div class="h-48 relative flex items-center justify-center"><canvas id="chartPriorityPie"></canvas></div></div>
+        <div class="glass p-5 rounded-2xl space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-wider">Department Allocation</h3><div class="h-48 relative flex items-center justify-center"><canvas id="chartDeptPie"></canvas></div></div>
+        <div class="glass p-5 rounded-2xl space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-wider">SLA Performance</h3><div class="h-48 relative flex items-center justify-center"><canvas id="chartSlaPie"></canvas></div></div>
+    </div>
+    <!-- CATEGORY + DEPARTMENT -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Category Performance</h3><p class="text-xs text-slate-400">Complaints by civic service category</p></div>
+            <div class="h-64 relative"><canvas id="categoryBarChart"></canvas></div>
+        </div>
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Department Performance</h3><p class="text-xs text-slate-400">Complaints handled per department</p></div>
+            <div class="h-64 relative"><canvas id="departmentBarChart"></canvas></div>
+        </div>
+    </div>
+    <!-- MATRICES -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Category × Status</h3><p class="text-xs text-slate-400">Workflow distribution by category</p></div>
+            <div class="h-64 relative"><canvas id="catStatusStackedChart"></canvas></div>
+        </div>
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Category × Priority</h3><p class="text-xs text-slate-400">Priority distribution by category</p></div>
+            <div class="h-64 relative"><canvas id="catPriorityStackedChart"></canvas></div>
+        </div>
+    </div>
+    <!-- ANALYTICS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Complaint Ageing</h3><p class="text-xs text-slate-400">Duration of pending complaints</p></div>
+            <div class="h-56 relative"><canvas id="ageingBarChart"></canvas></div>
+        </div>
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">Resolution Time</h3><p class="text-xs text-slate-400">Average resolution time by category</p></div>
+            <div class="h-56 relative"><canvas id="resolutionTimeBarChart"></canvas></div>
+        </div>
+        <div class="glass p-5 rounded-2xl space-y-4">
+            <div><h3 class="text-sm font-bold text-white uppercase tracking-wider">AI Classification Confidence</h3><p class="text-xs text-slate-400">AI confidence distribution</p></div>
+            <div class="h-56 relative"><canvas id="aiConfidenceChart"></canvas></div>
+        </div>
+    </div>
+    <!-- AI INSIGHTS -->
+    <div class="glass p-6 rounded-2xl space-y-5 border border-cyan-500/20">
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400"><i class="fa-solid fa-brain"></i></div>
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-wide">AI CIVIC INTELLIGENCE</h3>
+                    <p class="text-xs text-slate-400">Machine-learning signals from current complaint data</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-bold">Model Active</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass p-4 rounded-xl space-y-2 border-l-4 border-l-cyan-400">
+                <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">TOP CIVIC ISSUE</span>
+                <h4 id="ai-top-issue" class="text-base font-bold text-white">No Data</h4>
+                <p class="text-xs text-slate-300"><span id="ai-top-count" class="font-bold text-cyan-300">0 complaints</span></p>
+            </div>
+            <div class="glass p-4 rounded-xl space-y-2 border-l-4 border-l-amber-400">
+                <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">EMERGING CIVIC ISSUE</span>
+                <h4 id="ai-emerging-issue" class="text-base font-bold text-white">No Data</h4>
+                <div class="flex items-center gap-2 text-xs">
+                    <span id="ai-emerging-growth" class="font-bold text-amber-400">0%</span>
+                    <span id="ai-emerging-trend" class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 text-[10px]">Stable</span>
+                </div>
+            </div>
+            <div class="glass p-4 rounded-xl space-y-2 border-l-4 border-l-rose-400">
+                <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">HIGH PRIORITY ISSUE</span>
+                <h4 id="ai-priority-issue" class="text-base font-bold text-white">No Data</h4>
+                <p class="text-xs text-slate-300"><span id="ai-priority-percent" class="font-bold text-rose-300">0%</span> critical/high priority</p>
+            </div>
+        </div>
+        <div class="space-y-3 pt-2">
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Emerging Issues Watchlist</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-navy-900/80 text-slate-400 uppercase text-[10px]">
+                        <tr><th class="p-3 rounded-l-xl">Issue</th><th class="p-3">Current Cases</th><th class="p-3">Previous</th><th class="p-3">Growth</th><th class="p-3 rounded-r-xl">Trend</th></tr>
+                    </thead>
+                    <tbody id="emerging-issues-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- CATEGORY STATUS TABLE -->
+    <div class="glass p-6 rounded-2xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-white/10">
+            <div>
+                <h3 class="text-base font-bold text-white tracking-wide">CATEGORY STATUS MATRIX</h3>
+                <p class="text-xs text-slate-400">Comprehensive breakdown of grievances</p>
+            </div>
+            <input type="text" id="table-search" oninput="filterTable()" placeholder="Search category..." class="glass-input px-3 py-1.5 rounded-xl text-xs w-48">
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-navy-900/80 text-slate-400 uppercase text-[10px]">
+                    <tr><th class="p-3 rounded-l-xl">Category</th><th class="p-3 text-amber-400">Pending</th><th class="p-3 text-blue-400">In Progress</th><th class="p-3 text-emerald-400">Resolved</th><th class="p-3 text-rose-400">Rejected</th><th class="p-3 rounded-r-xl text-white">Total</th></tr>
+                </thead>
+                <tbody id="analytics-table-body" class="divide-y divide-white/5"></tbody>
+            </table>
+        </div>
+    </div>
+    <!-- SUMMARY -->
+    <div class="glass p-5 rounded-2xl space-y-3">
+        <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> CIVIC INTELLIGENCE SUMMARY</h3>
+        <ul id="intelligence-summary-list" class="space-y-1.5 text-xs text-slate-300 list-disc list-inside"></ul>
+    </div>
+</main>
+<script>
+let charts={},API_BASE="",currentData=null;
+window.addEventListener("DOMContentLoaded",async()=>{
+    try{await loadFilterOptions();await loadCountries();setupFilterEvents();await loadInsights();}
+    catch(e){console.error(e);showError("Unable to load NIVADA analytics.");}
+});
+function setupFilterEvents(){
+    document.getElementById("filter-country").addEventListener("change",async()=>{await loadStates();resetSelect("filter-district","All Districts");resetSelect("filter-taluka","All Talukas");resetSelect("filter-village","All Villages");await loadInsights();});
+    document.getElementById("filter-state").addEventListener("change",async()=>{await loadDistricts();resetSelect("filter-taluka","All Talukas");resetSelect("filter-village","All Villages");await loadInsights();});
+    document.getElementById("filter-district").addEventListener("change",async()=>{await loadTalukas();resetSelect("filter-village","All Villages");await loadInsights();});
+    document.getElementById("filter-taluka").addEventListener("change",async()=>{await loadVillages();await loadInsights();});
+    ["filter-village","filter-days","filter-category","filter-department","filter-status","filter-priority"].forEach(id=>{
+        document.getElementById(id).addEventListener("change",loadInsights);
+    });
+}
+async function loadFilterOptions(){
+    const res=await fetch(`${API_BASE}/api/user/insights/options`);
+    if(!res.ok)throw new Error("Failed to load filter options");
+    const data=await res.json();
+    const cat=document.getElementById("filter-category"),dept=document.getElementById("filter-department");
+    cat.innerHTML=`<option value="">All Categories</option>`;
+    dept.innerHTML=`<option value="">All Departments</option>`;
+    data.categories.forEach(i=>{cat.innerHTML+=`<option value="${i.id}">${escapeHtml(i.name)}</option>`;});
+    data.departments.forEach(i=>{dept.innerHTML+=`<option value="${i.id}">${escapeHtml(i.name)}</option>`;});
+}
+async function fetchGeography(level,parentId=null){
+    let url=`${API_BASE}/api/user/insights/geography?level=${level}`;
+    if(parentId)url+=`&parent_id=${parentId}`;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error(`Failed to load ${level}`);
+    return await res.json();
+}
+async function populateGeography(id,items,defaultText){
+    const select=document.getElementById(id);
+    select.innerHTML=`<option value="">${defaultText}</option>`;
+    items.forEach(i=>{select.innerHTML+=`<option value="${i.id}">${escapeHtml(i.name)}</option>`;});
+}
+async function loadCountries(){populateGeography("filter-country",await fetchGeography("country"),"All Countries");}
+async function loadStates(){
+    const cId=getValue("filter-country");
+    if(!cId){resetSelect("filter-state","All States");return;}
+    populateGeography("filter-state",await fetchGeography("state",cId),"All States");
+}
+async function loadDistricts(){
+    const sId=getValue("filter-state");
+    if(!sId){resetSelect("filter-district","All Districts");return;}
+    populateGeography("filter-district",await fetchGeography("district",sId),"All Districts");
+}
+async function loadTalukas(){
+    const dId=getValue("filter-district");
+    if(!dId){resetSelect("filter-taluka","All Talukas");return;}
+    populateGeography("filter-taluka",await fetchGeography("taluka",dId),"All Talukas");
+}
+async function loadVillages(){
+    const tId=getValue("filter-taluka");
+    if(!tId){resetSelect("filter-village","All Villages");return;}
+    populateGeography("filter-village",await fetchGeography("village",tId),"All Villages");
+}
+async function loadInsights(){
+    setLoading(true);
+    try{
+        const res=await fetch(`${API_BASE}/api/user/insights?${buildParams()}`);
+        if(!res.ok){if(res.status===401){window.location.href="/user/login";return;}throw new Error(`Analytics API failed: ${res.status}`);}
+        currentData=await res.json();
+        updateDashboard(currentData);
+        updateTimestamp();
+    }catch(e){console.error(e);showError("Failed to load analytics data.");}
+    finally{setLoading(false);}
+}
+function buildParams(){
+    const p=new URLSearchParams();
+    ["country_id","state_id","district_id","taluka_id","village_id","category_id","department_id","status","priority"].forEach(k=>addParam(p,k,getValue(`filter-${k.replace('_id','')}`)));
+    p.set("days",getValue("filter-days")||"30");
+    return p.toString();
+}
+function addParam(p,k,v){if(v!==null&&v!=="")p.set(k,v);}
+function updateDashboard(data){
+    updateKPIs(data);updateBreadcrumb(data);updateFilterChips();updateStatusLegend(data);
+    updateCharts(data);updateAI(data);updateEmergingIssues(data);updateCategoryTable(data);updateSummary(data);
+}
+function updateKPIs(data){
+    const s=data.summary||{};
+    setText("kpi-total",formatNumber(s.total));
+    setText("kpi-pending",formatNumber(s.pending));
+    setText("kpi-inprogress",formatNumber(s.in_progress));
+    setText("kpi-resolved",formatNumber(s.resolved));
+    setText("kpi-rejected",formatNumber(s.rejected));
+    setText("kpi-rate",`${s.resolution_rate||0}%`);
+    setText("kpi-avg-time",`${s.avg_resolution_time||0}d`);
+    setText("kpi-sla",s.sla_compliance===null?"N/A":`${s.sla_compliance}%`);
+}
+function updateBreadcrumb(data){
+    const loc=data.location||{},selected=[];
+    [["filter-country","Country"],["filter-state","State"],["filter-district","District"],["filter-taluka","Taluka"],["filter-village","Village"]].forEach(([id])=>{
+        const sel=document.getElementById(id);
+        if(sel&&sel.value&&sel.selectedIndex>=0){
+            const txt=sel.options[sel.selectedIndex].text;
+            if(txt&&!txt.startsWith("All "))selected.push(txt);
+        }
+    });
+    if(!selected.length&&loc.name)selected.push(loc.name);
+    document.getElementById("breadcrumb-display").textContent=selected.length?selected.join(" / "):"India / All Areas";
+}
+function updateFilterChips(){
+    const container=document.getElementById("filter-chips");
+    container.innerHTML=`<span class="text-slate-400">Active Filters:</span>`;
+    ["filter-country","filter-state","filter-district","filter-taluka","filter-village","filter-days","filter-category","filter-department","filter-status","filter-priority"].forEach(id=>{
+        const sel=document.getElementById(id);
+        if(!sel||!sel.value)return;
+        const txt=sel.options[sel.selectedIndex].text;
+        const chip=document.createElement("span");
+        chip.className="px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1.5";
+        chip.innerHTML=`${escapeHtml(txt)} <i class="fa-solid fa-xmark cursor-pointer" onclick="clearFilter('${id}')"></i>`;
+        container.appendChild(chip);
+    });
+}
+async function clearFilter(id){
+    document.getElementById(id).value="";
+    if(id==="filter-country"){resetSelect("filter-state","All States");resetSelect("filter-district","All Districts");resetSelect("filter-taluka","All Talukas");resetSelect("filter-village","All Villages");}
+    if(id==="filter-state"){resetSelect("filter-district","All Districts");resetSelect("filter-taluka","All Talukas");resetSelect("filter-village","All Villages");}
+    if(id==="filter-district"){resetSelect("filter-taluka","All Talukas");resetSelect("filter-village","All Villages");}
+    if(id==="filter-taluka"){resetSelect("filter-village","All Villages");}
+    await loadInsights();
+}
+function updateStatusLegend(data){
+    const s=data.status_distribution||{},legend=document.getElementById("status-legend");
+    const items=[["Pending",s.pending||0,"amber"],["In Progress",s.in_progress||0,"blue"],["Resolved",s.resolved||0,"emerald"],["Rejected",s.rejected||0,"rose"]];
+    legend.innerHTML=items.map(i=>`<div class="flex items-center justify-between"><span class="text-${i[2]}-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-${i[2]}-400"></span>${i[0]}</span><span class="font-bold">${formatNumber(i[1])}</span></div>`).join("");
+}
+function updateCharts(data){
+    destroyCharts();
+    createTrendChart(data);createStatusDonut(data);createStatusPie(data);createPriorityPie(data);createDepartmentPie(data);
+    createSlaPie(data);createCategoryBar(data);createDepartmentBar(data);createCategoryStatusChart(data);createCategoryPriorityChart(data);
+    createAgeingChart(data);createResolutionTimeChart(data);createAIConfidenceChart(data);
+}
+function createTrendChart(data){
+    const t=data.monthly_trend||[];
+    charts.trend=new Chart(document.getElementById("trendChart"),{type:"line",data:{labels:t.map(x=>x.date),datasets:[{label:"Complaints",data:t.map(x=>x.count),borderColor:"#22d3ee",backgroundColor:"rgba(34,211,238,0.10)",fill:true,tension:0.3}]},options:chartLineOptions()});
+}
+function createStatusDonut(data){
+    const s=data.status_distribution||{};
+    charts.statusDonut=new Chart(document.getElementById("statusDonutChart"),{type:"doughnut",data:{labels:["Pending","In Progress","Resolved","Rejected"],datasets:[{data:[s.pending||0,s.in_progress||0,s.resolved||0,s.rejected||0],backgroundColor:["#f59e0b","#3b82f6","#10b981","#f43f5e"],borderWidth:0}]},options:donutOptions()});
+}
+function createStatusPie(data){
+    const s=data.status_distribution||{};
+    charts.statusPie=createPie("chartStatusPie",["Pending","In Progress","Resolved","Rejected"],[s.pending||0,s.in_progress||0,s.resolved||0,s.rejected||0],["#f59e0b","#3b82f6","#10b981","#f43f5e"]);
+}
+function createPriorityPie(data){
+    const p=data.priority_distribution||{};
+    charts.priorityPie=createPie("chartPriorityPie",["High","Medium","Low"],[p.high||0,p.medium||0,p.low||0],["#f43f5e","#f59e0b","#3b82f6"]);
+}
+function createDepartmentPie(data){
+    const d=data.department_distribution||[];
+    charts.deptPie=createPie("chartDeptPie",d.map(x=>x.name),d.map(x=>x.count),generateColors(d.length));
+}
+function createSlaPie(data){
+    const sla=data.summary.sla_compliance;
+    if(sla===null||sla===undefined){charts.slaPie=createPie("chartSlaPie",["SLA Data Unavailable"],[1],["#475569"]);return;}
+    charts.slaPie=createPie("chartSlaPie",["Within SLA","SLA Breached"],[sla,Math.max(0,100-sla)],["#10b981","#f43f5e"]);
+}
+function createCategoryBar(data){
+    const c=data.category_distribution||[];
+    charts.categoryBar=createBar("categoryBarChart",c.map(x=>x.name),c.map(x=>x.count),"#22d3ee");
+}
+function createDepartmentBar(data){
+    const d=data.department_distribution||[];
+    charts.deptBar=createBar("departmentBarChart",d.map(x=>x.name),d.map(x=>x.count),"#3b82f6");
+}
+function createCategoryStatusChart(data){
+    const m=data.category_status||{},cats=Object.keys(m);
+    charts.catStatusStacked=new Chart(document.getElementById("catStatusStackedChart"),{type:"bar",data:{labels:cats,datasets:[{label:"Pending",data:cats.map(x=>m[x].pending||0),backgroundColor:"#f59e0b"},{label:"In Progress",data:cats.map(x=>m[x].in_progress||0),backgroundColor:"#3b82f6"},{label:"Resolved",data:cats.map(x=>m[x].resolved||0),backgroundColor:"#10b981"},{label:"Rejected",data:cats.map(x=>m[x].rejected||0),backgroundColor:"#f43f5e"}]},options:stackedOptions()});
+}
+function createCategoryPriorityChart(data){
+    const m=data.category_priority||{},cats=Object.keys(m);
+    charts.catPriorityStacked=new Chart(document.getElementById("catPriorityStackedChart"),{type:"bar",data:{labels:cats,datasets:[{label:"High",data:cats.map(x=>m[x].high||0),backgroundColor:"#f43f5e"},{label:"Medium",data:cats.map(x=>m[x].medium||0),backgroundColor:"#f59e0b"},{label:"Low",data:cats.map(x=>m[x].low||0),backgroundColor:"#3b82f6"}]},options:stackedOptions()});
+}
+function createAgeingChart(data){
+    const a=data.ageing||{};
+    charts.ageing=createBar("ageingBarChart",["0-3 Days","4-7 Days","8-15 Days","15+ Days"],[a["0_3"]||0,a["4_7"]||0,a["8_15"]||0,a["15_plus"]||0],"#f59e0b");
+}
+function createResolutionTimeChart(data){
+    const r=data.resolution_time||[];
+    charts.resTime=createBar("resolutionTimeBarChart",r.map(x=>x.category),r.map(x=>x.days),"#10b981");
+}
+function createAIConfidenceChart(data){
+    const v=data.ai_confidence||[],b=[0,0,0,0,0,0];
+    v.forEach(val=>{if(val<60)b[0]++;else if(val<70)b[1]++;else if(val<80)b[2]++;else if(val<90)b[3]++;else if(val<95)b[4]++;else b[5]++;});
+    charts.aiConf=createBar("aiConfidenceChart",["<60%","60-70%","70-80%","80-90%","90-95%","95-100%"],b,"#06b6d4");
+}
+function updateAI(data){
+    const ai=data.ai_insights||{},top=ai.top_issue||{},em=ai.emerging_issue||{},pr=ai.high_priority_issue||{};
+    setText("ai-top-issue",top.category||"No Data");
+    setText("ai-top-count",`${formatNumber(top.count||0)} complaints`);
+    setText("ai-emerging-issue",em.category||"No Data");
+    setText("ai-emerging-growth",`${em.growth||0}%`);
+    setText("ai-emerging-trend",em.growth>0?"Increasing":em.growth<0?"Declining":"Stable");
+    setText("ai-priority-issue",pr.category||"No Data");
+    setText("ai-priority-percent",`${pr.percentage||0}%`);
+}
+function updateEmergingIssues(data){
+    const body=document.getElementById("emerging-issues-body"),issues=data.emerging_issues||[];
+    if(!issues.length){body.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-slate-500">No emerging issues found</td></tr>`;return;}
+    body.innerHTML=issues.slice(0,10).map(i=>{
+        const g=i.change||0,tCl=g>0?"amber":g<0?"emerald":"slate";
+        return `<tr class="hover:bg-white/5"><td class="p-3 font-semibold text-white">${escapeHtml(i.issue)}</td><td class="p-3">${formatNumber(i.current)}</td><td class="p-3">${formatNumber(i.previous)}</td><td class="p-3 text-${tCl}-400 font-bold">${g>0?"+":""}${g}%</td><td class="p-3"><span class="px-2 py-0.5 rounded bg-${tCl}-500/10 text-${tCl}-400">${escapeHtml(i.trend)}</span></td></tr>`;
+    }).join("");
+}
+function updateCategoryTable(data){
+    const body=document.getElementById("analytics-table-body"),matrix=data.category_status||{},rows=Object.entries(matrix);
+    if(!rows.length){body.innerHTML=`<tr><td colspan="6" class="p-5 text-center text-slate-500">No complaint data found</td></tr>`;return;}
+    body.innerHTML=rows.map(([cat,v])=>{
+        const tot=(v.pending||0)+(v.in_progress||0)+(v.resolved||0)+(v.rejected||0);
+        return `<tr class="hover:bg-white/5"><td class="p-3 font-semibold text-white">${escapeHtml(cat)}</td><td class="p-3 text-amber-400">${formatNumber(v.pending||0)}</td><td class="p-3 text-blue-400">${formatNumber(v.in_progress||0)}</td><td class="p-3 text-emerald-400">${formatNumber(v.resolved||0)}</td><td class="p-3 text-rose-400">${formatNumber(v.rejected||0)}</td><td class="p-3 font-bold text-white">${formatNumber(tot)}</td></tr>`;
+    }).join("");
+}
+function updateSummary(data){
+    const list=document.getElementById("intelligence-summary-list"),sum=data.summary||{},cats=data.category_distribution||[],items=[];
+    if(cats.length){const top=cats[0],pct=sum.total?((top.count/sum.total)*100).toFixed(1):0;items.push(`${top.name} represents ${pct}% of complaints in the selected data.`);}
+    items.push(`${formatNumber(sum.pending||0)} complaints are currently pending.`);
+    items.push(`${formatNumber(sum.resolved||0)} complaints are resolved.`);
+    items.push(`Current resolution rate is ${sum.resolution_rate||0}%.`);
+    if(sum.avg_resolution_time)items.push(`Average resolution time is ${sum.avg_resolution_time} days.`);
+    list.innerHTML=items.map(i=>`<li>${escapeHtml(i)}</li>`).join("");
+}
+function createPie(id,labels,data,colors){return new Chart(document.getElementById(id),{type:"pie",data:{labels,datasets:[{data,backgroundColor:colors}]},options:pieOptions()});}
+function createBar(id,labels,data,color){return new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:[{data,backgroundColor:color,borderRadius:6}]},options:barOptions()});}
+function chartLineOptions(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}}}},scales:{x:{grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#94a3b8"}},y:{beginAtZero:true,grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#94a3b8"}}}};;}
+function pieOptions(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}}}};;}
+function donutOptions(){return{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{display:false}}};}
+function barOptions(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:"#94a3b8",font:{size:10}}},y:{beginAtZero:true,grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#94a3b8"}}}};;}
+function stackedOptions(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#94a3b8",font:{size:10},boxWidth:8}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:"rgba(255,255,255,0.05)"},ticks:{color:"#94a3b8"}}}};;}
+function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+async function refreshInsights(){
+    const btn=document.getElementById("refresh-btn");
+    btn.disabled=true;btn.innerHTML=`<i class="fa-solid fa-rotate animate-spin"></i> Updating...`;
+    await loadInsights();
+    btn.disabled=false;btn.innerHTML=`<i class="fa-solid fa-rotate"></i> Refresh Insights`;
+}
+function exportReport(){window.location.href=`${API_BASE}/api/user/insights/export?${buildParams()}`;}
+function filterTable(){
+    const q=document.getElementById("table-search").value.toLowerCase();
+    document.querySelectorAll("#analytics-table-body tr").forEach(r=>{
+        const t=r.children[0]?.innerText.toLowerCase()||"";
+        r.style.display=t.includes(q)?"":"none";
+    });
+}
+function getValue(id){return document.getElementById(id).value;}
+function resetSelect(id,text){document.getElementById(id).innerHTML=`<option value="">${text}</option>`;}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function formatNumber(v){return Number(v||0).toLocaleString("en-IN");}
+function updateTimestamp(){document.getElementById("last-updated").textContent=`Last updated: ${new Date().toLocaleTimeString("en-IN")}`;}
+function setLoading(s){document.body.style.cursor=s?"wait":"default";}
+function showError(msg){const list=document.getElementById("intelligence-summary-list");if(list)list.innerHTML=`<li class="text-rose-400">${escapeHtml(msg)}</li>`;}
+function generateColors(count){
+    const cols=["#06b6d4","#3b82f6","#10b981","#a855f7","#f59e0b","#f43f5e","#14b8a6","#8b5cf6","#ec4899","#84cc16"];
+    return Array.from({length:count},(_,i)=>cols[i%cols.length]);
+}
+function escapeHtml(v){const div=document.createElement("div");div.textContent=v??"";return div.innerHTML;}
+</script>
+</body>
+</html>
