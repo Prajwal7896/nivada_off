@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, Float, ForeignKey , DateTime
 from sqlalchemy.sql import func
 from app.db.db import Base
+from datetime import datetime
 
 
 class User(Base):
@@ -13,6 +14,15 @@ class User(Base):
     role = Column(String, default="citizen")
     created_at = Column(TIMESTAMP, server_default=func.now())
 
+class PredictionLog(Base):
+    __tablename__ = "prediction_logs"
+
+    id = Column(Integer, primary_key=True)
+    complaint_id = Column(Integer)
+    predicted_category = Column(String(100))
+    confidence = Column(Float)
+    model_version = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class Admin(Base):
     __tablename__ = "admins"

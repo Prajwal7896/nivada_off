@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pathlib import Path
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.auth.choose import router as choose_router
 from app.auth.user.user_login import router as user_login_router
 from app.auth.user.user_registration import router as user_registration_router
@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(title="NIVADA")
-
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     SessionMiddleware,

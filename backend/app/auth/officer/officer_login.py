@@ -16,20 +16,9 @@ def officer_login(
     remember_me: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    print("LOGIN EMAIL:", repr(email))
-    print("LOGIN PASSWORD:", repr(password))
-
     admin = db.query(Admin).filter(
         Admin.email == email
     ).first()
-
-    print("ADMIN FOUND:", admin is not None)
-
-    if admin:
-        print("DB EMAIL:", repr(admin.email))
-        print("DB PASSWORD:", repr(admin.password))
-        print("DB ROLE:", repr(admin.role))
-        print("PASSWORD MATCH:", admin.password == password)
 
     if not admin or admin.password != password:
         return RedirectResponse(
@@ -44,8 +33,6 @@ def officer_login(
         )
 
     request.session["admin_id"] = admin.id
-
-    print("SESSION ADMIN ID:", request.session.get("admin_id"))
 
     return RedirectResponse(
         url="/officer/dashboard",

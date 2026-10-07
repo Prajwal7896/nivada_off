@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse, RedirectResponse
 import os
 
 router = APIRouter()
@@ -12,7 +12,19 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 
 @router.get("/")
-def choose():
+def choose(request: Request):
+    if request.session.get("user_id"):
+        return RedirectResponse(
+            url="/user/dashboard",
+            status_code=303
+        )
+
+    if request.session.get("officer_id"):
+        return RedirectResponse(
+            url="/officer/dashboard",
+            status_code=303
+        )
+
     return FileResponse(
         os.path.join(FRONTEND_DIR, "index.html")
     )

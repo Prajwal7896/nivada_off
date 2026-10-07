@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Form, Depends
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -44,11 +44,7 @@ def officer_register(
             }
         )
 
-    existing_admin = db.query(Admin).filter(
-        Admin.email == email
-    ).first()
-
-    if existing_admin:
+    if db.query(Admin).filter(Admin.email == email).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -58,11 +54,7 @@ def officer_register(
             }
         )
 
-    existing_employee = db.query(Admin).filter(
-        Admin.employee_code == employee_code
-    ).first()
-
-    if existing_employee:
+    if db.query(Admin).filter(Admin.employee_code == employee_code).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -89,11 +81,7 @@ def officer_register(
             }
         )
 
-    department = db.query(Department).filter(
-        Department.id == department_id
-    ).first()
-
-    if not department:
+    if not db.query(Department).filter(Department.id == department_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -103,11 +91,7 @@ def officer_register(
             }
         )
 
-    country = db.query(Country).filter(
-        Country.id == country_id
-    ).first()
-
-    if not country:
+    if not db.query(Country).filter(Country.id == country_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -117,12 +101,7 @@ def officer_register(
             }
         )
 
-    state = db.query(State).filter(
-        State.id == state_id,
-        State.country_id == country_id
-    ).first()
-
-    if not state:
+    if not db.query(State).filter(State.id == state_id, State.country_id == country_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -132,12 +111,7 @@ def officer_register(
             }
         )
 
-    district = db.query(District).filter(
-        District.id == district_id,
-        District.state_id == state_id
-    ).first()
-
-    if not district:
+    if not db.query(District).filter(District.id == district_id, District.state_id == state_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -147,12 +121,7 @@ def officer_register(
             }
         )
 
-    taluka = db.query(Taluka).filter(
-        Taluka.id == taluka_id,
-        Taluka.district_id == district_id
-    ).first()
-
-    if not taluka:
+    if not db.query(Taluka).filter(Taluka.id == taluka_id, Taluka.district_id == district_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -162,12 +131,7 @@ def officer_register(
             }
         )
 
-    village = db.query(Village).filter(
-        Village.id == village_id,
-        Village.taluka_id == taluka_id
-    ).first()
-
-    if not village:
+    if not db.query(Village).filter(Village.id == village_id, Village.taluka_id == taluka_id).first():
         return JSONResponse(
             status_code=400,
             content={
@@ -197,10 +161,8 @@ def officer_register(
         db.add(admin)
         db.commit()
         db.refresh(admin)
-
     except IntegrityError as e:
         db.rollback()
-
         return JSONResponse(
             status_code=400,
             content={

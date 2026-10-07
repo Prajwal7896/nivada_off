@@ -1,33 +1,75 @@
 import os
 import pickle
-
-import torch
+import numpy as np
+import onnxruntime as ort
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-
+from transformers import AutoTokenizer
+from prometheus_client import Counter, Histogram , Gauge
+import time
 from app.complaint.decode import get_admin_location
 from app.db.db import get_db
-from app.db.model import (
-    User,
-    Complaint,
-    ComplaintCategory,
-    Department,
-    Admin
-)
+from app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
 
 router = APIRouter(prefix="/api", tags=["Complaints"])
 
+prediction_counter = Counter(
+    "nivada_predictions_total",
+    "Total number of ML predictions"
+)
+
+prediction_category_counter = Counter(
+    "nivada_predictions_by_category_total",
+    "Predictions by category",
+    ["category"]
+)
+
+prediction_error_counter = Counter(
+    "nivada_prediction_errors_total",
+    "Total number of ML prediction errors"
+)
+
+prediction_confidence = Histogram(
+    "nivada_prediction_confidence",
+    "ML prediction confidence"
+)
+
+prediction_latency = Histogram(
+    "nivada_prediction_latency_seconds",
+    "ML prediction latency"
+)
+
+low_confidence_counter = Counter(
+    "nivada_low_confidence_predictions_total",
+    "Predictions with confidence below threshold"
+)
+
+model_info = Gauge(
+    "nivada_model_info",
+    "Currently deployed Nivada ML model",
+    ["model_version"]
+)
+
+model_info.labels(model_version="2").set(1)
 
 BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../model/model_2")
 )
 
-MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "fast_model2"
+MODEL_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../../../production_model/model/model.onnx"
+    )
+)
+
+TOKENIZER_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../../../production_model/model"
+    )
 )
 
 ENCODER_PATH = os.path.join(
@@ -35,59 +77,82 @@ ENCODER_PATH = os.path.join(
     "label_encoder1.pkl"
 )
 
+tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-
-model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL_PATH
+onnx_session = ort.InferenceSession(
+    MODEL_PATH,
+    providers=["CPUExecutionProvider"]
 )
-
-model.eval()
-
 
 with open(ENCODER_PATH, "rb") as f:
     label_encoder = pickle.load(f)
 
 
 def predict_category(text: str):
+    start_time = time.time()
 
-    inputs = tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        max_length=128
-    )
+    try:
+        inputs = tokenizer(
+            text,
+            return_tensors="np",
+            truncation=True,
+            max_length=128
+        )
 
-    with torch.no_grad():
-        outputs = model(**inputs)
+        ort_inputs = {
+            "input_ids": inputs["input_ids"].astype(np.int64),
+            "attention_mask": inputs["attention_mask"].astype(np.int64)
+        }
 
-    probabilities = torch.softmax(
-        outputs.logits,
-        dim=1
-    )
+        logits = onnx_session.run(
+            ["logits"],
+            ort_inputs
+        )[0]
 
-    predicted_id = torch.argmax(
-        probabilities,
-        dim=1
-    ).item()
+        probabilities = np.exp(
+            logits - np.max(logits, axis=1, keepdims=True)
+        )
 
-    confidence = probabilities[
-        0,
-        predicted_id
-    ].item()
+        probabilities = probabilities / np.sum(
+            probabilities,
+            axis=1,
+            keepdims=True
+        )
 
-    category_name = label_encoder.inverse_transform(
-        [predicted_id]
-    )[0]
+        predicted_id = int(
+            np.argmax(probabilities, axis=1)[0]
+        )
 
-    if confidence < 0.60:
-        category_name = "Other"
+        confidence = float(
+            probabilities[0, predicted_id]
+        )
 
-    return category_name, confidence
+        category_name = label_encoder.inverse_transform(
+            [predicted_id]
+        )[0]
+
+        if confidence < 0.60:
+            low_confidence_counter.inc()
+            category_name = "Other"
+
+        prediction_category_counter.labels(
+            category=category_name
+        ).inc()
+        
+        prediction_counter.inc()
+        print("PREDICTION FUNCTION CALLED")
+        print("COUNTER BEFORE:", prediction_counter._value.get())
+        prediction_confidence.observe(confidence)
+        prediction_latency.observe(time.time() - start_time)
+
+        return category_name, confidence
+    
+    except Exception:
+        prediction_error_counter.inc()
+        raise
 
 
 def get_department_name(category_name: str):
-
     mapping = {
         "Animal and Stray Issues": "Animal Control",
         "Construction": "Building and Construction",
@@ -118,55 +183,39 @@ def find_assigned_admin(
     district_id: int | None
 ):
     if village_id is not None:
-        admin = (
-            db.query(Admin)
-            .filter(
-                Admin.role == "officer",
-                Admin.department_id == department_id,
-                Admin.village_id == village_id
-            )
-            .first()
-        )
+        admin = db.query(Admin).filter(
+            Admin.role == "officer",
+            Admin.department_id == department_id,
+            Admin.village_id == village_id
+        ).first()
 
         if admin:
             return admin
 
     if taluka_id is not None:
-        admin = (
-            db.query(Admin)
-            .filter(
-                Admin.role == "officer",
-                Admin.department_id == department_id,
-                Admin.taluka_id == taluka_id
-            )
-            .first()
-        )
+        admin = db.query(Admin).filter(
+            Admin.role == "officer",
+            Admin.department_id == department_id,
+            Admin.taluka_id == taluka_id
+        ).first()
 
         if admin:
             return admin
 
     if district_id is not None:
-        admin = (
-            db.query(Admin)
-            .filter(
-                Admin.role == "officer",
-                Admin.department_id == department_id,
-                Admin.district_id == district_id
-            )
-            .first()
-        )
+        admin = db.query(Admin).filter(
+            Admin.role == "officer",
+            Admin.department_id == department_id,
+            Admin.district_id == district_id
+        ).first()
 
         if admin:
             return admin
 
-    return (
-        db.query(Admin)
-        .filter(
-            Admin.role == "officer",
-            Admin.department_id == department_id
-        )
-        .first()
-    )
+    return db.query(Admin).filter(
+        Admin.role == "officer",
+        Admin.department_id == department_id
+    ).first()
 
 
 @router.post("/complaints")
@@ -184,7 +233,7 @@ async def create_complaint(
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
-
+    print("CREATE_COMPLAINT CALLED")
     user_id = request.session.get("user_id")
 
     if not user_id:
@@ -193,11 +242,9 @@ async def create_complaint(
             detail="User is not logged in"
         )
 
-    user = (
-        db.query(User)
-        .filter(User.id == user_id)
-        .first()
-    )
+    user = db.query(User).filter(
+        User.id == user_id
+    ).first()
 
     if not user:
         raise HTTPException(
@@ -227,7 +274,6 @@ async def create_complaint(
         )
 
     if latitude is not None and longitude is not None:
-
         location = get_admin_location(
             db,
             latitude,
@@ -250,27 +296,16 @@ async def create_complaint(
         description
     )
 
-    category = (
-        db.query(ComplaintCategory)
-        .filter(
-            func.lower(ComplaintCategory.name)
-            == category_name.lower()
-        )
-        .first()
-    )
+    category = db.query(ComplaintCategory).filter(
+        func.lower(ComplaintCategory.name)
+        == category_name.lower()
+    ).first()
 
     if not category:
-
         if category_name == "Other":
-
-            category = (
-                db.query(ComplaintCategory)
-                .filter(
-                    func.lower(ComplaintCategory.name)
-                    == "other"
-                )
-                .first()
-            )
+            category = db.query(ComplaintCategory).filter(
+                func.lower(ComplaintCategory.name) == "other"
+            ).first()
 
         if not category:
             raise HTTPException(
@@ -288,14 +323,10 @@ async def create_complaint(
             detail=f"No department mapping found for category '{category.name}'"
         )
 
-    department = (
-        db.query(Department)
-        .filter(
-            func.lower(Department.name)
-            == department_name.lower()
-        )
-        .first()
-    )
+    department = db.query(Department).filter(
+        func.lower(Department.name)
+        == department_name.lower()
+    ).first()
 
     if not department:
         raise HTTPException(
@@ -310,6 +341,7 @@ async def create_complaint(
         taluka_id=taluka_id,
         district_id=district_id
     )
+
     print(
         "ASSIGNMENT:",
         "department=", department.id,
@@ -318,10 +350,10 @@ async def create_complaint(
         "district=", district_id,
         "admin=", assigned_admin.id if assigned_admin else None
     )
+
     image_path = None
 
     if image:
-
         allowed_types = {
             "image/jpeg",
             "image/jpg",
@@ -398,10 +430,17 @@ async def create_complaint(
     )
 
     db.add(complaint)
-
     db.commit()
-
     db.refresh(complaint)
+    prediction_log = PredictionLog(
+        complaint_id=complaint.id,
+        predicted_category=category.name,
+        confidence=confidence,
+        model_version="2"
+    )
+
+    db.add(prediction_log)
+    db.commit()
 
     return {
         "success": True,
@@ -424,3 +463,26 @@ async def create_complaint(
         "confidence": round(confidence, 4),
         "status": complaint.status
     }
+
+@router.get("/prediction-logs")
+def get_prediction_logs(
+    db: Session = Depends(get_db)
+):
+    logs = (
+        db.query(PredictionLog)
+        .order_by(PredictionLog.created_at.desc())
+        .limit(100)
+        .all()
+    )
+
+    return [
+        {
+            "id": log.id,
+            "complaint_id": log.complaint_id,
+            "predicted_category": log.predicted_category,
+            "confidence": log.confidence,
+            "model_version": log.model_version,
+            "created_at": log.created_at
+        }
+        for log in logs
+    ]
