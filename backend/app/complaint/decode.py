@@ -53,6 +53,25 @@ def get_admin_location(
             text("SELECT COUNT(*) FROM villages")
         ).scalar()
     )
+    print(
+        "DB CHECK:",
+        db.execute(
+            text("""
+            SELECT
+                current_database(),
+                current_schema(),
+                inet_server_addr(),
+                inet_server_port()
+            """)
+        ).fetchone()
+    )
+
+    print(
+        "VILLAGE COUNT:",
+        db.execute(
+            text("SELECT COUNT(*) FROM public.villages")
+        ).scalar()
+    )
     result = db.execute(
         query,
         {
