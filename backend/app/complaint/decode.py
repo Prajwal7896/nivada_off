@@ -1,3 +1,4 @@
+from rich.prompt import result
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -9,7 +10,7 @@ def get_admin_location(
 ):
     print("VILLAGE LOOKUP LATITUDE:", latitude)
     print("VILLAGE LOOKUP LONGITUDE:", longitude)
-    
+
     query = text("""
         SELECT
             v.id AS village_id,
@@ -48,7 +49,8 @@ def get_admin_location(
             "longitude": longitude
         }
     ).mappings().first()
-
+    print("VILLAGE QUERY RESULT:", result)
+    print("VILLAGE QUERY RESULT TYPE:", type(result))
     if not result:
         return None
 
