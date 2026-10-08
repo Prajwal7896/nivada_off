@@ -1,30 +1,28 @@
 import os
-import shutil
-import mlflow
-from mlflow import MlflowClient
+import subprocess
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+from huggingface_hub import snapshot_download
 
-MODEL_NAME = "Nivada-Complaint-Classifier"
-MODEL_VERSION = "2"
+REPO_ID = "sage7896/Nivada"
+LOCAL_DIR = os.path.abspath(".")
 
-SOURCE = f"models:/{MODEL_NAME}/{MODEL_VERSION}"
-LOCAL_DIR = os.path.abspath("production_model")
-
-client = MlflowClient()
-
-if os.path.exists(LOCAL_DIR):
-    shutil.rmtree(LOCAL_DIR)
-
-model_version = client.get_model_version(
-    MODEL_NAME,
-    MODEL_VERSION
-)
-
-mlflow.artifacts.download_artifacts(
-    artifact_uri=f"runs:/{model_version.run_id}/model",
-    dst_path=LOCAL_DIR
+snapshot_download(
+    repo_id=REPO_ID,
+    local_dir=LOCAL_DIR,
+    allow_patterns=["production_model/model/*"]
 )
 
 print("Production model downloaded")
-print("Location:", LOCAL_DIR)
+print("Location:", os.path.abspath("production_model/model"))
+
+env = os.environ.copy()
+env["PYTHONPATH"] = os.path.abspath("backend")
+
+subprocess.run([
+    "uvicorn",
+    "main:app",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    os.environ.get("PORT", "8000")
+], cwd="backend", env=env)
