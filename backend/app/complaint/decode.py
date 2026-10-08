@@ -7,6 +7,9 @@ def get_admin_location(
     latitude: float,
     longitude: float
 ):
+    print("VILLAGE LOOKUP LATITUDE:", latitude)
+    print("VILLAGE LOOKUP LONGITUDE:", longitude)
+    
     query = text("""
         SELECT
             v.id AS village_id,
