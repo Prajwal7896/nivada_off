@@ -20,17 +20,26 @@ from app.dashboard.user.map import router as map_router
 from app.dashboard.user.insights import router as insights_router
 from app.dashboard.user.user_complaints import router as user_dashboard_router
 from app.dashboard.officer.officer_dashboard import router as officer_dashboard_router
-
+from sqlalchemy import text
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(title="NIVADA")
-
 @app.on_event("startup")
 def create_tables():
     Base.metadata.create_all(bind=engine)
-    
+
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+        conn.execute(text(
+            "ALTER TABLE villages ADD COLUMN IF NOT EXISTS geometry geometry(Geometry, 4326)"
+        ))
+        
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
 Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
