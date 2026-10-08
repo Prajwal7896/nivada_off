@@ -8,7 +8,8 @@ from app.auth.user.user_login import router as user_login_router
 from app.auth.user.user_registration import router as user_registration_router
 from app.auth.officer.offiice_registration import router as officer_registration_router
 from app.auth.officer.officer_login import router as officer_login_router
-
+from app.db.db import Base, engine
+from app.db import model
 from app.geo import router as geography_router
 from app.complaint.complaints import router as complaints_router
 
@@ -25,6 +26,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(title="NIVADA")
+
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+    
 Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
