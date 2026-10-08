@@ -40,7 +40,19 @@ def get_admin_location(
         )
         LIMIT 1
     """)
+    print(
+        "DB CHECK:",
+        db.execute(
+            text("SELECT current_database(), current_schema()")
+        ).fetchone()
+    )
 
+    print(
+        "VILLAGE COUNT:",
+        db.execute(
+            text("SELECT COUNT(*) FROM villages")
+        ).scalar()
+    )
     result = db.execute(
         query,
         {
