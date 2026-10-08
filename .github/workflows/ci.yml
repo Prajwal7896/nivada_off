@@ -22,9 +22,12 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-prod.txt
 
       - name: Check Python files
         run: |
           python -m compileall backend
           python -m compileall model_loader.py
+
+      - name: Build Docker image
+        run: docker build -t nivada:test .
