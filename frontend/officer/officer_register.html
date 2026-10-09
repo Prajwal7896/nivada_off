@@ -853,11 +853,10 @@
             const item = talukas.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
         }
-
-
-        function getVillageName(id) {
-            const item = villages.find(x => String(x.id) === String(id));
-            return item ? item.name : 'Not selected';
+        
+        function onVillageChange(value) {
+            formData.village_id = value;
+            renderStep();
         }
 
         async function onCountryChange(value) {
