@@ -806,6 +806,31 @@
                 </div>
             `;
         }
+        
+        function handleStep4Submit(e) {
+            e.preventDefault();
+        
+            const requiredFields = [
+                ["country_id", "Country"],
+                ["state_id", "State"],
+                ["district_id", "District"],
+                ["taluka_id", "Taluka"],
+                ["village_id", "Village"]
+            ];
+        
+            for (const [key, label] of requiredFields) {
+                if (!formData[key]) {
+                    alert(`Please select ${label}.`);
+                    return;
+                }
+            }
+        
+            completedSteps.add(4);
+            currentStep = 5;
+        
+            renderStep();
+            renderSidebar();
+        }
         function getCountryName(id) {
             const item = countries.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
