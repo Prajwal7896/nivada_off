@@ -169,6 +169,7 @@ def get_department_name(category_name: str):
         "Police": "Police",
         "Road": "Roads and Infrastructure",
         "Waste": "Waste Management",
+        "Other": "Municipal Administration",
         "Water": "Water Supply"
     }
 
