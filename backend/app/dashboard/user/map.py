@@ -5,8 +5,8 @@ from sqlalchemy import text
 from pathlib import Path
 import json
 
-from app.db.db import get_db
-from app.db.model import (
+from backend.app.db.db import get_db
+from backend.app.db.model import (
     Complaint,
     ComplaintCategory,
     Country,

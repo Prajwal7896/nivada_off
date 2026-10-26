@@ -6,8 +6,8 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.db.db import get_db
-from app.db.model import User, Complaint, ComplaintCategory, Department, ComplaintHistory, Country, State, District, Taluka, Village
+from backend.app.db.db import get_db
+from backend.app.db.model import User, Complaint, ComplaintCategory, Department, ComplaintHistory, Country, State, District, Taluka, Village
 
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parents[4]

@@ -4,8 +4,8 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 
-from app.db.db import get_db
-from app.db.model import (
+from backend.app.db.db import get_db
+from backend.app.db.model import (
     Admin,
     Department,
     Country,

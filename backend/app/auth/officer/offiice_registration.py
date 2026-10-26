@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.db.db import get_db
-from app.db.model import (
+from backend.app.db.db import get_db
+from backend.app.db.model import (
     Admin,
     Department,
     Country,

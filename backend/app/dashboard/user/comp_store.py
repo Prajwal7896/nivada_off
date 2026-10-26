@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.db.model import (
+from backend.app.db.model import (
     Complaint,
     ComplaintCategory,
     Department,

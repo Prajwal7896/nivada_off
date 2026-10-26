@@ -5,9 +5,9 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.db.db import get_db
+from backend.app.db.db import get_db
 
-from app.dashboard.user.comp_store import (
+from backend.app.dashboard.user.comp_store import (
     get_user_complaints,
     get_complaint,
     delete_user_complaint,

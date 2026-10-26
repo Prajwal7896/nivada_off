@@ -6,12 +6,12 @@ import onnxruntime as ort
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from transformers import AutoTokenizer
+from functools import lru_cache
 from prometheus_client import Counter, Histogram , Gauge
 import time
-from app.complaint.decode import get_admin_location
-from app.db.db import get_db
-from app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
+from backend.app.complaint.decode import get_admin_location
+from backend.app.db.db import get_db
+from backend.app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
 
 router = APIRouter(prefix="/api", tags=["Complaints"])
 
@@ -77,22 +77,31 @@ ENCODER_PATH = os.path.join(
     "label_encoder1.pkl"
 )
 
-tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
+@lru_cache(maxsize=1)
+def get_tokenizer():
+    from transformers import AutoTokenizer
+    return AutoTokenizer.from_pretrained(TOKENIZER_PATH)
 
-onnx_session = ort.InferenceSession(
-    MODEL_PATH,
-    providers=["CPUExecutionProvider"]
-)
 
-with open(ENCODER_PATH, "rb") as f:
-    label_encoder = pickle.load(f)
+@lru_cache(maxsize=1)
+def get_onnx_session():
+    return ort.InferenceSession(
+        MODEL_PATH,
+        providers=["CPUExecutionProvider"]
+    )
+
+
+@lru_cache(maxsize=1)
+def get_label_encoder():
+    with open(ENCODER_PATH, "rb") as f:
+        return pickle.load(f)
 
 
 def predict_category(text: str):
     start_time = time.time()
 
     try:
-        inputs = tokenizer(
+        inputs = get_tokenizer()(
             text,
             return_tensors="np",
             truncation=True,
@@ -104,7 +113,7 @@ def predict_category(text: str):
             "attention_mask": inputs["attention_mask"].astype(np.int64)
         }
 
-        logits = onnx_session.run(
+        logits = get_onnx_session().run(
             ["logits"],
             ort_inputs
         )[0]
@@ -127,7 +136,7 @@ def predict_category(text: str):
             probabilities[0, predicted_id]
         )
 
-        category_name = label_encoder.inverse_transform(
+        category_name = get_label_encoder().inverse_transform(
             [predicted_id]
         )[0]
 

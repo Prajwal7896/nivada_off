@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.db import get_db
-from app.db.model import (
+from backend.app.db.db import get_db
+from backend.app.db.model import (
     Country,
     State,
     District,

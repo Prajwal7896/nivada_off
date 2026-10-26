@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import os
 
-from app.db.db import get_db
-from app.db.model import User
+from backend.app.db.db import get_db
+from backend.app.db.model import User
 
 router = APIRouter()
 

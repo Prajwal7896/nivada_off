@@ -2,8 +2,8 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.db.db import get_db
-from app.db.model import User
+from backend.app.db.db import get_db
+from backend.app.db.model import User
 
 router = APIRouter()
 
