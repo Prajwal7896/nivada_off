@@ -19,6 +19,7 @@ from transformers import AutoTokenizer
 
 HF_REPO_ID = "sage7896/Nivada"
 HF_SUBFOLDER = "production_model/model"
+
 prediction_counter = Counter(
     "nivada_predictions_total",
     "Total number of ML predictions"
@@ -91,8 +92,6 @@ def get_tokenizer():
 
 @lru_cache(maxsize=1)
 def get_onnx_session():
-    import onnxruntime as ort
-
     model_path = hf_hub_download(
         repo_id=HF_REPO_ID,
         filename=f"{HF_SUBFOLDER}/model.onnx"
@@ -106,7 +105,12 @@ def get_onnx_session():
 
 @lru_cache(maxsize=1)
 def get_label_encoder():
-    with open(ENCODER_PATH, "rb") as f:
+    encoder_path = hf_hub_download(
+        repo_id=HF_REPO_ID,
+        filename=f"{HF_SUBFOLDER}/label_encoder1.pkl"
+    )
+
+    with open(encoder_path, "rb") as f:
         return pickle.load(f)
 
 
