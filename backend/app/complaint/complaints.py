@@ -80,7 +80,27 @@ ENCODER_PATH = os.path.join(
 @lru_cache(maxsize=1)
 def get_tokenizer():
     from transformers import AutoTokenizer
-    return AutoTokenizer.from_pretrained(TOKENIZER_PATH)
+
+    tokenizer_dir = TOKENIZER_PATH
+
+    if not os.path.isdir(tokenizer_dir):
+        raise FileNotFoundError(
+            f"Tokenizer directory not found: {tokenizer_dir}"
+        )
+
+    if not os.path.isfile(
+        os.path.join(tokenizer_dir, "tokenizer_config.json")
+    ) and not os.path.isfile(
+        os.path.join(tokenizer_dir, "tokenizer.json")
+    ):
+        raise FileNotFoundError(
+            f"Tokenizer configuration files are missing: {tokenizer_dir}"
+        )
+
+    return AutoTokenizer.from_pretrained(
+        tokenizer_dir,
+        local_files_only=True
+    )
 
 
 @lru_cache(maxsize=1)
