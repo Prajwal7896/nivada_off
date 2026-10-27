@@ -841,26 +841,30 @@
             renderStep();
             renderSidebar();
         }
+        
         function getCountryName(id) {
             const item = countries.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
         }
-
-
+        
         function getStateName(id) {
             const item = states.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
         }
-
-
+        
         function getDistrictName(id) {
             const item = districts.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
         }
-
-
+        
         function getTalukaName(id) {
             const item = talukas.find(x => String(x.id) === String(id));
+            return item ? item.name : 'Not selected';
+        }
+        
+        // FIX: Missing village name helper
+        function getVillageName(id) {
+            const item = villages.find(x => String(x.id) === String(id));
             return item ? item.name : 'Not selected';
         }
         
@@ -868,27 +872,26 @@
             formData.village_id = value;
             renderStep();
         }
-
+        
         async function onCountryChange(value) {
             formData.country_id = value;
-
+        
             states = [];
             districts = [];
             talukas = [];
             villages = [];
-
+        
             formData.state_id = '';
             formData.district_id = '';
             formData.taluka_id = '';
             formData.village_id = '';
-
+        
             if (value) {
                 await loadStates(value);
             }
-
+        
             renderStep();
         }
-
 
         async function onStateChange(value) {
             formData.state_id = value;
