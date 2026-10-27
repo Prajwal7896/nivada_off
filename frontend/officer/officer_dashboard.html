@@ -1653,16 +1653,11 @@ function closeComplaintModal() {
 }
 
 
-async function updateComplaintStatus(newStatus) {
-
+async function updateComplaintStatus(newStatus, remark = "") {
     if (!selectedComplaintId) return;
 
-    const allowed = [
-        "pending",
-        "in_progress",
-        "resolved",
-        "rejected"
-    ];
+    const complaintId = selectedComplaintId;
+    const allowed = ["pending", "in_progress", "resolved", "rejected"];
 
     if (!allowed.includes(newStatus)) {
         alert("Invalid status.");
@@ -1670,11 +1665,17 @@ async function updateComplaintStatus(newStatus) {
     }
 
     try {
-
         const response = await fetch(
-            `/api/officer/complaints/${selectedComplaintId}/status?status=${encodeURIComponent(newStatus)}`,
+            `/api/officer/complaints/${complaintId}/status`,
             {
-                method: "PATCH"
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    remark: remark.trim()
+                })
             }
         );
 
@@ -1685,32 +1686,33 @@ async function updateComplaintStatus(newStatus) {
         }
 
         await loadOfficerDashboard();
-
-        await openComplaintModal(selectedComplaintId);
+        await openComplaintModal(complaintId);
 
     } catch (error) {
-
         console.error(error);
-
-        alert(error.message);
+        alert(error.message || "Unable to update complaint.");
     }
 }
 
 
-function addOfficerRemark() {
+async function addOfficerRemark() {
+    const input = document.getElementById("officer-remark-input");
+    const remark = input.value.trim();
 
-    const input =
-        document.getElementById("officer-remark-input");
+    if (!selectedComplaintId) {
+        alert("Select a complaint first.");
+        return;
+    }
 
-    const value = input.value.trim();
-
-    if (!value) {
+    if (!remark) {
         alert("Enter a progress note.");
         return;
     }
 
-    alert("Remark API is not connected yet.");
+    await updateComplaintStatus("in_progress", remark);
+    input.value = "";
 }
+
 
 
 function openResolveModal() {
@@ -1730,26 +1732,23 @@ function closeResolveModal() {
 
 
 async function confirmResolve() {
+    const remark = document.getElementById("resolve-remark").value.trim();
 
-    const remark =
-        document.getElementById("resolve-remark")
-            .value
-            .trim();
-
-    if (!remark) {
-
-        alert("Resolution remark is required.");
-
+    if (!selectedComplaintId) {
+        alert("Select a complaint first.");
         return;
     }
 
-    closeResolveModal();
+    if (!remark) {
+        alert("Resolution remark is required.");
+        return;
+    }
 
-    await updateComplaintStatus("resolved");
+    await updateComplaintStatus("resolved", remark);
 
     document.getElementById("resolve-remark").value = "";
+    closeResolveModal();
 }
-
 
 function openEscalateModal() {
 
