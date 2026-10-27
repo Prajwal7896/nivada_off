@@ -2017,6 +2017,19 @@ document.addEventListener("keydown", event => {
     }
 });
 
+setInterval(() => {
+    if (
+        !document.hidden &&
+        !document.getElementById("complaint-modal")?.classList.contains("hidden")
+    ) {
+        return;
+    }
+
+    if (!document.hidden) {
+        loadOfficerDashboard();
+    }
+}, 15000);
+
 </script>
 
 </body>
