@@ -1586,16 +1586,14 @@ async function loadComplaintTimeline(complaintId) {
             await fetch(`/api/officer/complaints/${complaintId}/history`);
 
         if (response.status === 404) {
-
             timeline.innerHTML = `
                 <div class="text-nivada-400">
-                    Timeline API not connected.
+                    Complaint history is not available yet.
                 </div>
             `;
-
             return;
         }
-
+        
         if (!response.ok) {
             throw new Error("Timeline request failed");
         }
@@ -1653,6 +1651,7 @@ function closeComplaintModal() {
 }
 
 
+
 async function updateComplaintStatus(newStatus, remark = "") {
     if (!selectedComplaintId) return;
 
@@ -1666,30 +1665,28 @@ async function updateComplaintStatus(newStatus, remark = "") {
 
     try {
         const response = await fetch(
-            `/api/officer/complaints/${complaintId}/status`,
-            {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    status: newStatus,
-                    remark: remark.trim()
-                })
-            }
+            `/api/officer/complaints/${complaintId}/status?status=${encodeURIComponent(newStatus)}`,
+            { method: "PATCH" }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.detail || "Status update failed");
+            const detail = Array.isArray(data.detail)
+                ? data.detail.map(error => error.msg).join(", ")
+                : data.detail;
+
+            throw new Error(detail || "Status update failed.");
         }
 
         await loadOfficerDashboard();
         await openComplaintModal(complaintId);
 
+        if (remark.trim()) {
+            alert("Status updated, but the remark was not saved. The current API does not support saving remarks.");
+        }
     } catch (error) {
-        console.error(error);
+        console.error("Status update error:", error);
         alert(error.message || "Unable to update complaint.");
     }
 }
