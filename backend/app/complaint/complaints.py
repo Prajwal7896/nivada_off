@@ -14,7 +14,11 @@ from backend.app.db.db import get_db
 from backend.app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
 
 router = APIRouter(prefix="/api", tags=["Complaints"])
+from huggingface_hub import hf_hub_download
+from transformers import AutoTokenizer
 
+HF_REPO_ID = "sage7896/Nivada"
+HF_SUBFOLDER = "production_model/model"
 prediction_counter = Counter(
     "nivada_predictions_total",
     "Total number of ML predictions"
@@ -79,34 +83,23 @@ ENCODER_PATH = os.path.join(
 
 @lru_cache(maxsize=1)
 def get_tokenizer():
-    from transformers import AutoTokenizer
-
-    tokenizer_dir = TOKENIZER_PATH
-
-    if not os.path.isdir(tokenizer_dir):
-        raise FileNotFoundError(
-            f"Tokenizer directory not found: {tokenizer_dir}"
-        )
-
-    if not os.path.isfile(
-        os.path.join(tokenizer_dir, "tokenizer_config.json")
-    ) and not os.path.isfile(
-        os.path.join(tokenizer_dir, "tokenizer.json")
-    ):
-        raise FileNotFoundError(
-            f"Tokenizer configuration files are missing: {tokenizer_dir}"
-        )
-
     return AutoTokenizer.from_pretrained(
-        tokenizer_dir,
-        local_files_only=True
+        HF_REPO_ID,
+        subfolder=HF_SUBFOLDER
     )
 
 
 @lru_cache(maxsize=1)
 def get_onnx_session():
+    import onnxruntime as ort
+
+    model_path = hf_hub_download(
+        repo_id=HF_REPO_ID,
+        filename=f"{HF_SUBFOLDER}/model.onnx"
+    )
+
     return ort.InferenceSession(
-        MODEL_PATH,
+        model_path,
         providers=["CPUExecutionProvider"]
     )
 
