@@ -543,11 +543,19 @@
 
         function filterDepartments(query) {
             const q = query.toLowerCase().trim();
-
+        
+            const selected = document.querySelector(
+                '#step3-form input[name="department_id"]:checked'
+            );
+        
+            if (selected) {
+                formData.department_id = selected.value;
+            }
+        
             const filtered = departments.filter(d =>
                 d.name.toLowerCase().includes(q)
             );
-
+        
             document.getElementById('department-list-container').innerHTML =
                 renderDepartmentOptions(filtered);
         }
@@ -555,19 +563,21 @@
 
         function handleStep3Submit(e) {
             e.preventDefault();
-
-            const selected =
-                document.querySelector('input[name="department_id"]:checked');
-
+        
+            const selected = document.querySelector(
+                '#step3-form input[name="department_id"]:checked'
+            );
+        
             if (!selected) {
+                alert("Please select a department before continuing.");
                 return;
             }
-
+        
             formData.department_id = selected.value;
-
+        
             completedSteps.add(3);
             currentStep = 4;
-
+        
             renderStep();
             renderSidebar();
         }
