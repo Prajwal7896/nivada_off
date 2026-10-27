@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException , Body
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
-
 from backend.app.db.db import get_db
 from backend.app.db.model import (
     Admin,
@@ -260,11 +259,13 @@ def officer_stats(
     }
 
 
+
 @router.patch("/api/officer/complaints/{complaint_id}/status")
 def update_complaint_status(
     complaint_id: int,
     request: Request,
     status: str,
+    payload: dict | None = Body(default=None),
     db: Session = Depends(get_db)
 ):
     officer = get_current_officer(request, db)
@@ -293,21 +294,32 @@ def update_complaint_status(
             detail="Complaint not found"
         )
 
-    old_status = complaint.status
+    remark = (payload or {}).get("remark", "")
+    remark = remark.strip() if isinstance(remark, str) else ""
 
+    old_status = complaint.status
     complaint.status = status
+
+    if remark:
+        description = remark
+        action = "officer_remark" if old_status == status else "status_update"
+    else:
+        description = (
+            f"Officer changed complaint status from "
+            f"{old_status} to {status}"
+        )
+        action = "status_update"
 
     history = ComplaintHistory(
         complaint_id=complaint.id,
         performed_by=officer.id,
         old_status=old_status,
         new_status=status,
-        action="status_update",
-        description=f"Officer changed complaint status from {old_status} to {status}"
+        action=action,
+        description=description
     )
 
     db.add(history)
-
     db.commit()
     db.refresh(complaint)
 
@@ -315,8 +327,51 @@ def update_complaint_status(
         "success": True,
         "complaint_id": complaint.id,
         "old_status": old_status,
-        "new_status": complaint.status
+        "new_status": complaint.status,
+        "remark": remark or None
     }
+
+
+@router.get("/api/officer/complaints/{complaint_id}/history")
+def officer_complaint_history(
+    complaint_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    officer = get_current_officer(request, db)
+
+    complaint = db.query(Complaint).filter(
+        Complaint.id == complaint_id,
+        Complaint.assigned_admin_id == officer.id
+    ).first()
+
+    if not complaint:
+        raise HTTPException(
+            status_code=404,
+            detail="Complaint not found"
+        )
+
+    history_records = (
+        db.query(ComplaintHistory)
+        .filter(ComplaintHistory.complaint_id == complaint_id)
+        .order_by(ComplaintHistory.id.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": item.id,
+            "old_status": item.old_status,
+            "new_status": item.new_status,
+            "action": item.action,
+            "description": item.description,
+            "timestamp": (
+                getattr(item, "timestamp", None)
+                or getattr(item, "created_at", None)
+            )
+        }
+        for item in history_records
+    ]
 
 
 @router.get("/api/officer/notifications")
