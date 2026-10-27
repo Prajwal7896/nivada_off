@@ -1665,10 +1665,20 @@ async function updateComplaintStatus(newStatus, remark = "") {
     }
 
     try {
+        
         const response = await fetch(
             `/api/officer/complaints/${complaintId}/status?status=${encodeURIComponent(newStatus)}`,
-            { method: "PATCH" }
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    remark: remark.trim()
+                })
+            }
         );
+
 
         const data = await response.json();
 
