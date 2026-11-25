@@ -1,10 +1,12 @@
+
 from fastapi import APIRouter, Form, Depends, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from backend.app.db.db import get_db
 from backend.app.db.model import User
-import os
 from backend.app.security.rate_limit import limiter
+from backend.app.security.password import hash_password
+import os
 
 router = APIRouter()
 
@@ -30,7 +32,9 @@ def user_register_submit(
     confirm_password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    existing_user = db.query(User).filter(User.email == email).first()
+    existing_user = db.query(User).filter(
+        User.email == email
+    ).first()
 
     if existing_user:
         return FileResponse(
@@ -46,7 +50,7 @@ def user_register_submit(
         username=fullname,
         email=email,
         phone=phone,
-        password=password,
+        password=hash_password(password),
         role="citizen"
     )
 

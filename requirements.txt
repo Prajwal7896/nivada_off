@@ -137,3 +137,5 @@ yarl==1.25.1
 zipp==4.1.0
 
 slowapi==0.1.10
+
+pwdlib[argon2]

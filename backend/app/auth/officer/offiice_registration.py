@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from backend.app.security.rate_limit import limiter
-
+from backend.app.security.password import hash_password
 from backend.app.db.db import get_db
 from backend.app.db.model import (
     Admin,
@@ -147,7 +147,7 @@ def officer_register(
     admin = Admin(
         username=name,
         email=email,
-        password=password,
+        password=hash_password(password),
         phone=phone,
         employee_code=employee_code,
         designation=designation,
