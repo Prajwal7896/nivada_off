@@ -30,30 +30,10 @@ from backend.app.dashboard.officer.officer_dashboard import router as officer_da
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Connect Redis; application can still start if Redis is unavailable.
-    await connect_redis()
-
-    yield
-
-    # Close Redis connection during shutdown.
-    await close_redis()
-app = FastAPI(
-    title="NIVADA",
-    lifespan=lifespan
-)
-@app.middleware("http")
-async def refresh_database_metrics(request, call_next):
-    update_db_pool_metrics()
-    response = await call_next(request)
-    update_db_pool_metrics()
-    return response
-
-
-
-@app.on_event("startup")
-def create_tables():
+    # Initialize database schema and PostGIS.
     Base.metadata.create_all(bind=engine)
 
     with engine.begin() as conn:
@@ -64,6 +44,23 @@ def create_tables():
             )
         )
 
+    # Connect Redis; application can still start if Redis is unavailable.
+    await connect_redis()
+
+    try:
+        yield
+    finally:
+        await close_redis()
+app = FastAPI(
+    title="NIVADA",
+    lifespan=lifespan
+)
+@app.middleware("http")
+async def refresh_database_metrics(request, call_next):
+    update_db_pool_metrics()
+    response = await call_next(request)
+    update_db_pool_metrics()
+    return response
 
 Instrumentator().instrument(app).expose(app)
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
