@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Form, Depends
+from fastapi import APIRouter, Form, Depends, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from backend.app.db.db import get_db
 from backend.app.db.model import User
 import os
+from backend.app.security.rate_limit import limiter
 
 router = APIRouter()
 
@@ -19,7 +20,9 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend", "user")
 
 
 @router.post("/user/register")
+@limiter.limit("3/minute")
 def user_register_submit(
+    request: Request,
     fullname: str = Form(...),
     email: str = Form(...),
     phone: str = Form(...),

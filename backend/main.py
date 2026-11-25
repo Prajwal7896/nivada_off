@@ -13,6 +13,9 @@ from backend.app.auth.officer.officer_login import router as officer_login_route
 from backend.app.db.db import Base, engine
 from backend.app.db.metrics import update_db_pool_metrics
 from backend.app.db import model
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.app.security.rate_limit import limiter
 from backend.app.geo import router as geography_router
 from backend.app.complaint.complaints import router as complaints_router
 from contextlib import asynccontextmanager
@@ -54,6 +57,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="NIVADA",
     lifespan=lifespan
+)
+app.state.limiter = limiter
+
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler
 )
 @app.middleware("http")
 async def refresh_database_metrics(request, call_next):

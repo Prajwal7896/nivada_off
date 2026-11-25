@@ -4,11 +4,12 @@ from sqlalchemy.orm import Session
 
 from backend.app.db.db import get_db
 from backend.app.db.model import User
-
+from backend.app.security.rate_limit import limiter
 router = APIRouter()
 
 
 @router.post("/user/login")
+@limiter.limit("5/minute")
 def login(
     request: Request,
     email: str = Form(...),

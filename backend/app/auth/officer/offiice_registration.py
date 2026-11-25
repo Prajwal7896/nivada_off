@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Form, Depends
+from fastapi import APIRouter, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from backend.app.security.rate_limit import limiter
 
 from backend.app.db.db import get_db
 from backend.app.db.model import (
@@ -18,7 +19,9 @@ router = APIRouter()
 
 
 @router.post("/officer/register")
+@limiter.limit("5/minute")
 def officer_register(
+    request: Request,
     name: str = Form(...),
     email: str = Form(...),
     phone: str = Form(...),

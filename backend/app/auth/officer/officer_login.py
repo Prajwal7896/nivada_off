@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 
 from backend.app.db.db import get_db
 from backend.app.db.model import Admin
+from backend.app.security.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.post("/officer/login")
+@limiter.limit("5/minute")
 def officer_login(
     request: Request,
     email: str = Form(...),
