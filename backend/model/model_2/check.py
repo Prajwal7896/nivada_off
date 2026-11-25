@@ -1,6 +1,6 @@
 import pandas as pd
 
 # Load dataset
-df = pd.read_csv("updated_complaints.csv")
+df = pd.read_csv("prof.csv")
 
 print(df["category"].value_counts())

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, Float, ForeignKey , DateTime
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, Float, ForeignKey , DateTime , Index
 from sqlalchemy.sql import func
 from backend.app.db.db import Base
 from datetime import datetime
@@ -64,6 +64,10 @@ class Country(Base):
 
 class State(Base):
     __tablename__ = "states"
+
+    __table_args__ = (
+        Index("ix_states_country_name", "country_id", "name"),
+    )
     id = Column(Integer, primary_key=True)
     name = Column(String)
     country_id = Column(Integer, ForeignKey("countries.id"))
@@ -71,6 +75,10 @@ class State(Base):
 
 class District(Base):
     __tablename__ = "districts"
+
+    __table_args__ = (
+        Index("ix_districts_state_name", "state_id", "name"),
+    )
     id = Column(Integer, primary_key=True)
     name = Column(String)
     state_id = Column(Integer, ForeignKey("states.id"))
@@ -80,11 +88,17 @@ class Taluka(Base):
     __tablename__ = "talukas"
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    __table_args__ = (
+        Index("ix_talukas_district_name", "district_id", "name"),
+    )
     district_id = Column(Integer, ForeignKey("districts.id"))
 
 
 class Village(Base):
     __tablename__ = "villages"
+    __table_args__ = (
+        Index("ix_villages_taluka_name", "taluka_id", "name"),
+    )
     id = Column(Integer, primary_key=True)
     name = Column(String)
     taluka_id = Column(Integer, ForeignKey("talukas.id"))

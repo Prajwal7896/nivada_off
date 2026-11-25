@@ -17,76 +17,74 @@ from backend.app.db.model import (
 )
 
 
-def get_user_complaints(db: Session, user_id: int):
+
+def get_user_complaints(
+    db: Session,
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0
+):
     complaints = (
-        db.query(Complaint)
+        db.query(
+            Complaint,
+            ComplaintCategory.name.label("category_name"),
+            Department.name.label("department_name"),
+            Country.name.label("country_name"),
+            State.name.label("state_name"),
+            District.name.label("district_name"),
+            Taluka.name.label("taluka_name"),
+            Village.name.label("village_name")
+        )
+        .outerjoin(
+            ComplaintCategory,
+            Complaint.category_id == ComplaintCategory.id
+        )
+        .outerjoin(
+            Department,
+            Complaint.department_id == Department.id
+        )
+        .outerjoin(
+            Country,
+            Complaint.country_id == Country.id
+        )
+        .outerjoin(
+            State,
+            Complaint.state_id == State.id
+        )
+        .outerjoin(
+            District,
+            Complaint.district_id == District.id
+        )
+        .outerjoin(
+            Taluka,
+            Complaint.taluka_id == Taluka.id
+        )
+        .outerjoin(
+            Village,
+            Complaint.village_id == Village.id
+        )
         .filter(
             Complaint.user_id == user_id,
             Complaint.status != "closed"
         )
-        .order_by(desc(Complaint.timestamp))
+        .order_by(desc(Complaint.timestamp), desc(Complaint.id))
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 
     result = []
 
-    for complaint in complaints:
-
-        category = (
-            db.query(ComplaintCategory)
-            .filter(
-                ComplaintCategory.id == complaint.category_id
-            )
-            .first()
-        )
-
-        department = (
-            db.query(Department)
-            .filter(
-                Department.id == complaint.department_id
-            )
-            .first()
-        )
-
-        country = (
-            db.query(Country)
-            .filter(
-                Country.id == complaint.country_id
-            )
-            .first()
-        )
-
-        state = (
-            db.query(State)
-            .filter(
-                State.id == complaint.state_id
-            )
-            .first()
-        )
-
-        district = (
-            db.query(District)
-            .filter(
-                District.id == complaint.district_id
-            )
-            .first()
-        )
-
-        taluka = (
-            db.query(Taluka)
-            .filter(
-                Taluka.id == complaint.taluka_id
-            )
-            .first()
-        )
-
-        village = (
-            db.query(Village)
-            .filter(
-                Village.id == complaint.village_id
-            )
-            .first()
-        )
+    for (
+        complaint,
+        category_name,
+        department_name,
+        country_name,
+        state_name,
+        district_name,
+        taluka_name,
+        village_name
+    ) in complaints:
 
         result.append({
             "id": complaint.id,
@@ -97,19 +95,19 @@ def get_user_complaints(db: Session, user_id: int):
                 else "Civic Complaint"
             ),
             "description": complaint.complaint_text,
-            "category": category.name if category else None,
-            "department": department.name if department else None,
+            "category": category_name,
+            "department": department_name,
             "status": complaint.status,
             "priority": complaint.priority,
             "ai_confidence": complaint.ai_confidence,
             "address": complaint.address,
             "latitude": complaint.latitude,
             "longitude": complaint.longitude,
-            "country": country.name if country else None,
-            "state": state.name if state else None,
-            "district": district.name if district else None,
-            "taluka": taluka.name if taluka else None,
-            "village": village.name if village else None,
+            "country": country_name,
+            "state": state_name,
+            "district": district_name,
+            "taluka": taluka_name,
+            "village": village_name,
             "image_path": complaint.image_path,
             "submitted_date": complaint.timestamp,
             "updated_at": complaint.updated_at
@@ -123,8 +121,45 @@ def get_complaint(
     complaint_id: int,
     user_id: int
 ):
-    complaint = (
-        db.query(Complaint)
+    result = (
+        db.query(
+            Complaint,
+            ComplaintCategory.name.label("category_name"),
+            Department.name.label("department_name"),
+            Country.name.label("country_name"),
+            State.name.label("state_name"),
+            District.name.label("district_name"),
+            Taluka.name.label("taluka_name"),
+            Village.name.label("village_name")
+        )
+        .outerjoin(
+            ComplaintCategory,
+            Complaint.category_id == ComplaintCategory.id
+        )
+        .outerjoin(
+            Department,
+            Complaint.department_id == Department.id
+        )
+        .outerjoin(
+            Country,
+            Complaint.country_id == Country.id
+        )
+        .outerjoin(
+            State,
+            Complaint.state_id == State.id
+        )
+        .outerjoin(
+            District,
+            Complaint.district_id == District.id
+        )
+        .outerjoin(
+            Taluka,
+            Complaint.taluka_id == Taluka.id
+        )
+        .outerjoin(
+            Village,
+            Complaint.village_id == Village.id
+        )
         .filter(
             Complaint.id == complaint_id,
             Complaint.user_id == user_id
@@ -132,64 +167,19 @@ def get_complaint(
         .first()
     )
 
-    if not complaint:
+    if not result:
         return None
 
-    category = (
-        db.query(ComplaintCategory)
-        .filter(
-            ComplaintCategory.id == complaint.category_id
-        )
-        .first()
-    )
-
-    department = (
-        db.query(Department)
-        .filter(
-            Department.id == complaint.department_id
-        )
-        .first()
-    )
-
-    country = (
-        db.query(Country)
-        .filter(
-            Country.id == complaint.country_id
-        )
-        .first()
-    )
-
-    state = (
-        db.query(State)
-        .filter(
-            State.id == complaint.state_id
-        )
-        .first()
-    )
-
-    district = (
-        db.query(District)
-        .filter(
-            District.id == complaint.district_id
-        )
-        .first()
-    )
-
-    taluka = (
-        db.query(Taluka)
-        .filter(
-            Taluka.id == complaint.taluka_id
-        )
-        .first()
-    )
-
-    village = (
-        db.query(Village)
-        .filter(
-            Village.id == complaint.village_id
-        )
-        .first()
-    )
+    (
+        complaint,
+        category_name,
+        department_name,
+        country_name,
+        state_name,
+        district_name,
+        taluka_name,
+        village_name
+    ) = result
 
     return {
         "id": complaint.id,
@@ -200,23 +190,24 @@ def get_complaint(
             else "Civic Complaint"
         ),
         "description": complaint.complaint_text,
-        "category": category.name if category else None,
-        "department": department.name if department else None,
+        "category": category_name,
+        "department": department_name,
         "status": complaint.status,
         "priority": complaint.priority,
         "ai_confidence": complaint.ai_confidence,
         "address": complaint.address,
         "latitude": complaint.latitude,
         "longitude": complaint.longitude,
-        "country": country.name if country else None,
-        "state": state.name if state else None,
-        "district": district.name if district else None,
-        "taluka": taluka.name if taluka else None,
-        "village": village.name if village else None,
+        "country": country_name,
+        "state": state_name,
+        "district": district_name,
+        "taluka": taluka_name,
+        "village": village_name,
         "image_path": complaint.image_path,
         "timestamp": complaint.timestamp,
         "updated_at": complaint.updated_at
     }
+
 
 
 def delete_user_complaint(
@@ -365,16 +356,22 @@ def verify_resolution(
 
 def get_user_notifications(
     db: Session,
-    user_id: int
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0
 ):
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+
     notifications = (
         db.query(Notification)
-        .filter(
-            Notification.user_id == user_id
-        )
+        .filter(Notification.user_id == user_id)
         .order_by(
-            desc(Notification.created_at)
+            desc(Notification.created_at),
+            desc(Notification.id)
         )
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

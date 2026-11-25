@@ -292,6 +292,9 @@
                 <div id="complaints-card-list" class="lg:hidden divide-y divide-slate-800/50 p-4 space-y-4">
                     <!-- Populated dynamically -->
                 </div>
+                <!-- Shared Pagination: Desktop + Mobile -->
+                <div id="complaints-pagination" class="px-4 pb-5">
+                </div>
 
                 <!-- Empty State Container -->
                 <div id="empty-state" class="hidden py-20 px-6 text-center">
@@ -417,7 +420,14 @@
     <script>
         const API_BASE = "/api";
         let complaintsData = [];
+        let complaintOffset = 0;
+        const COMPLAINT_LIMIT = 20;
+        let complaintsLoading = false;
+        let hasMoreComplaints = true;
         let notificationsData = [];
+        let notificationOffset = 0;
+        const NOTIFICATION_LIMIT = 20;
+        let notificationsLoading = false;
         let selectedComplaintId = null;
         let verificationComplaintId = null;
         let deleteComplaintId = null;
@@ -466,17 +476,29 @@
             }
         }
 
-        async function fetchUserComplaints() {
+                
+        async function fetchUserComplaints(loadMore = false) {
+            if (complaintsLoading || (!hasMoreComplaints && loadMore)) return;
+
             const loadingState = document.getElementById("loading-state");
 
-            try {
+            complaintsLoading = true;
+
+            if (!loadMore) {
+                complaintOffset = 0;
+                hasMoreComplaints = true;
+                complaintsData = [];
+
                 if (loadingState) {
                     loadingState.classList.remove("hidden");
                 }
+            }
 
-                const response = await fetch(`${API_BASE}/user/complaints`, {
-                    credentials: "include"
-                });
+            try {
+                const response = await fetch(
+                    `${API_BASE}/user/complaints?limit=${COMPLAINT_LIMIT}&offset=${complaintOffset}`,
+                    { credentials: "include" }
+                );
 
                 if (response.status === 401) {
                     window.location.href = "/user/login";
@@ -487,24 +509,47 @@
                     throw new Error("Failed to fetch complaints");
                 }
 
-                complaintsData = await response.json();
+                const complaints = await response.json();
+
+                complaintsData = loadMore
+                    ? [...complaintsData, ...complaints]
+                    : complaints;
+
+                complaintOffset += complaints.length;
+                hasMoreComplaints = complaints.length === COMPLAINT_LIMIT;
+
                 renderComplaints(complaintsData);
                 checkResolvedComplaintsForVerification(complaintsData);
+
             } catch (error) {
                 console.error("Complaint loading failed:", error);
                 showToast("Failed to load complaints", "error");
             } finally {
+                complaintsLoading = false;
+
                 if (loadingState) {
                     loadingState.classList.add("hidden");
                 }
             }
         }
 
-        async function fetchNotifications() {
+
+                
+        async function fetchNotifications(reset = true) {
+            if (notificationsLoading) return;
+
+            notificationsLoading = true;
+
+            if (reset) {
+                notificationOffset = 0;
+                notificationsData = [];
+            }
+
             try {
-                const response = await fetch(`${API_BASE}/user/notifications`, {
-                    credentials: "include"
-                });
+                const response = await fetch(
+                    `${API_BASE}/user/notifications?limit=${NOTIFICATION_LIMIT}&offset=${notificationOffset}`,
+                    { credentials: "include" }
+                );
 
                 if (response.status === 401) {
                     window.location.href = "/user/login";
@@ -515,14 +560,26 @@
                     throw new Error("Failed to fetch notifications");
                 }
 
-                notificationsData = await response.json();
+                const notifications = await response.json();
+
+                notificationsData = reset
+                    ? notifications
+                    : [...notificationsData, ...notifications];
+
+                notificationOffset += notifications.length;
+
                 renderNotifications(notificationsData);
+
             } catch (error) {
                 console.error("Notification loading failed:", error);
+            } finally {
+                notificationsLoading = false;
             }
         }
 
+
         function renderComplaints(complaints) {
+            const pagination = document.getElementById("complaints-pagination");
             const tableBody = document.getElementById("complaints-table-body");
             const cardList = document.getElementById("complaints-card-list");
             const emptyState = document.getElementById("empty-state");
@@ -532,6 +589,9 @@
 
             tableBody.innerHTML = "";
             cardList.innerHTML = "";
+            if (pagination) {
+                pagination.innerHTML = "";
+            }
 
             const activeComplaints = complaints.filter(
                 complaint => String(complaint.status || "").toLowerCase() !== "closed"
@@ -541,10 +601,12 @@
                 countBadge.textContent = `${activeComplaints.length} Active`;
             }
 
-            if (activeComplaints.length === 0) {
+           if (activeComplaints.length === 0) {
                 emptyState?.classList.remove("hidden");
                 return;
             }
+
+            emptyState?.classList.add("hidden");
 
             emptyState?.classList.add("hidden");
 
@@ -630,8 +692,36 @@
                     </div>
                 `;
             });
+            if (pagination && hasMoreComplaints) {
+                const button = document.createElement("button");
+
+                button.id = "load-more-complaints";
+                button.className =
+                    "w-full p-3 rounded-xl border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-all";
+
+                button.textContent = "Load More Complaints";
+                button.onclick = () => fetchUserComplaints(true);
+
+                pagination.appendChild(button);
+            }
+            const existingButton = document.getElementById("load-more-complaints");
+            existingButton?.remove();
+
+            if (hasMoreComplaints) {
+                const loadMoreButton = document.createElement("button");
+
+                loadMoreButton.id = "load-more-complaints";
+                loadMoreButton.className =
+                    "w-full mt-4 p-3 rounded-xl border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-all";
+
+                loadMoreButton.textContent = "Load More Complaints";
+                loadMoreButton.onclick = () => fetchUserComplaints(true);
+
+                cardList.appendChild(loadMoreButton);
+            }
         }
 
+                
         function renderNotifications(notifications) {
             const list = document.getElementById("notification-list");
             const badge = document.getElementById("notification-badge");
@@ -647,11 +737,7 @@
             if (badge) {
                 badge.textContent = unread.length;
 
-                if (unread.length > 0) {
-                    badge.classList.remove("hidden");
-                } else {
-                    badge.classList.add("hidden");
-                }
+                badge.classList.toggle("hidden", unread.length === 0);
             }
 
             if (notifications.length === 0) {
@@ -678,14 +764,17 @@
                                 ? "border-slate-800 bg-slate-900/40"
                                 : "border-cyan-500/20 bg-cyan-500/5"
                         } hover:border-cyan-500/40 transition-all">
+
                         <div class="flex gap-3">
                             <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center flex-shrink-0">
                                 <i class="fa-solid fa-bell text-xs"></i>
                             </div>
+
                             <div>
                                 <p class="text-xs text-slate-300 leading-relaxed">
                                     ${escapeHtml(message)}
                                 </p>
+
                                 ${
                                     notification.created_at
                                         ? `<p class="text-[10px] text-slate-500 mt-1">${escapeHtml(formatDate(notification.created_at))}</p>`
@@ -696,7 +785,23 @@
                     </button>
                 `;
             });
+
+            if (notifications.length >= NOTIFICATION_LIMIT &&
+                notificationOffset % NOTIFICATION_LIMIT === 0) {
+
+                const loadMore = document.createElement("button");
+
+                loadMore.className =
+                    "w-full py-3 text-xs text-cyan-400 hover:text-white transition-colors";
+
+                loadMore.textContent = "Load more notifications";
+
+                loadMore.onclick = () => fetchNotifications(false);
+
+                list.appendChild(loadMore);
+            }
         }
+
 
         function getStatusBadge(status) {
             const normalized = String(status).toLowerCase();

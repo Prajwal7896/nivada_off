@@ -50,6 +50,8 @@ def user_submission(request: Request):
 @router.get("/api/user/complaints")
 def user_complaints(
     request: Request,
+    limit: int = 20,
+    offset: int = 0,
     db: Session = Depends(get_db)
 ):
     user_id = request.session.get("user_id")
@@ -60,7 +62,16 @@ def user_complaints(
             detail="Not authenticated"
         )
 
-    return get_user_complaints(db, user_id)
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+
+    return get_user_complaints(
+        db,
+        user_id,
+        limit,
+        offset
+    )
+
 
 
 @router.get("/api/user/complaints/{complaint_id}")
@@ -162,6 +173,8 @@ def verify_complaint(
 @router.get("/api/user/notifications")
 def user_notifications(
     request: Request,
+    limit: int = 20,
+    offset: int = 0,
     db: Session = Depends(get_db)
 ):
     user_id = request.session.get("user_id")
@@ -174,8 +187,11 @@ def user_notifications(
 
     return get_user_notifications(
         db,
-        user_id
+        user_id,
+        limit,
+        offset
     )
+
 
 
 @router.patch("/api/user/notifications/{notification_id}/read")

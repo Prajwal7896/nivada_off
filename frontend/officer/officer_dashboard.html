@@ -530,6 +530,8 @@
                     </table>
                 </div>
 
+                <div id="complaints-pagination" class="p-4"></div>
+
                 <div id="empty-state" class="hidden p-12 text-center">
 
                     <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-nivada-400">
@@ -1048,6 +1050,12 @@ let currentOfficer = null;
 let complaints = [];
 let selectedComplaintId = null;
 
+let officerComplaintOffset = 0;
+const OFFICER_COMPLAINT_LIMIT = 20;
+let officerComplaintsLoading = false;
+let hasMoreOfficerComplaints = true;
+let officerFilterTimer = null;
+
 document.addEventListener("DOMContentLoaded", async () => {
 
     const mobileMenuBtn = document.getElementById("mobile-menu-btn");
@@ -1071,17 +1079,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 async function loadOfficerDashboard() {
-
     try {
-
-        const [
-            profileResponse,
-            complaintsResponse,
-            statsResponse
-        ] = await Promise.all([
-            fetch("/api/officer/profile"),
-            fetch("/api/officer/complaints"),
-            fetch("/api/officer/stats")
+        const [profileResponse, statsResponse] = await Promise.all([
+            fetch("/api/officer/profile", { credentials: "include" }),
+            fetch("/api/officer/stats", { credentials: "include" })
         ]);
 
         if (profileResponse.status === 401) {
@@ -1089,24 +1090,19 @@ async function loadOfficerDashboard() {
             return;
         }
 
-        if (!profileResponse.ok ||
-            !complaintsResponse.ok ||
-            !statsResponse.ok) {
+        if (!profileResponse.ok || !statsResponse.ok) {
             throw new Error("Failed to load officer dashboard");
         }
 
         currentOfficer = await profileResponse.json();
-        complaints = await complaintsResponse.json();
-
         const stats = await statsResponse.json();
 
         initializeOfficerProfile();
         updateOfficerStats(stats);
-        renderComplaintsTable(complaints);
-        renderMapData(complaints);
+
+        await loadOfficerComplaints(false);
 
     } catch (error) {
-
         console.error(error);
 
         document.getElementById("complaints-table-body").innerHTML = `
@@ -1117,6 +1113,89 @@ async function loadOfficerDashboard() {
             </tr>
         `;
     }
+}
+
+async function loadOfficerComplaints(loadMore = false) {
+    if (officerComplaintsLoading) return;
+    if (loadMore && !hasMoreOfficerComplaints) return;
+
+    officerComplaintsLoading = true;
+
+    const pagination = document.getElementById("complaints-pagination");
+
+    if (!loadMore) {
+        officerComplaintOffset = 0;
+        hasMoreOfficerComplaints = true;
+        complaints = [];
+    }
+
+    if (pagination) pagination.innerHTML = "";
+
+    try {
+        const response = await fetch(
+            `/api/officer/complaints?${new URLSearchParams({
+                limit: OFFICER_COMPLAINT_LIMIT,
+                offset: officerComplaintOffset,
+                search: document.getElementById("search-input").value.trim(),
+                status: document.getElementById("status-filter").value,
+                priority: document.getElementById("priority-filter").value
+            }).toString()}`,
+            { credentials: "include" }
+        );
+
+        if (response.status === 401) {
+            window.location.href = "/officer/login";
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch complaints");
+        }
+
+        const newComplaints = await response.json();
+
+        complaints = loadMore
+            ? [...complaints, ...newComplaints]
+            : newComplaints;
+
+        officerComplaintOffset += newComplaints.length;
+        hasMoreOfficerComplaints =
+            newComplaints.length === OFFICER_COMPLAINT_LIMIT;
+
+        renderComplaintsTable(complaints);
+        renderMapData(complaints);
+
+    } catch (error) {
+        console.error("Complaint loading failed:", error);
+
+        if (pagination) {
+            pagination.innerHTML = `
+                <button onclick="loadOfficerComplaints(${loadMore})"
+                    class="w-full p-3 rounded-xl border border-red-500/30 text-red-400">
+                    Retry loading complaints
+                </button>
+            `;
+        }
+    } finally {
+        officerComplaintsLoading = false;
+    }
+}
+
+function renderOfficerPagination() {
+    const pagination = document.getElementById("complaints-pagination");
+    if (!pagination) return;
+
+    pagination.innerHTML = "";
+
+    if (!hasMoreOfficerComplaints) return;
+
+    const button = document.createElement("button");
+    button.className =
+        "w-full p-3 rounded-xl border border-blue-500/20 text-blue-400 hover:bg-blue-500/10 transition-all";
+    button.textContent = "Load More Complaints";
+    button.onclick = () => loadOfficerComplaints(true);
+
+    pagination.appendChild(button);
 }
 
 
@@ -1327,6 +1406,7 @@ function renderComplaintsTable(data) {
         tbody.innerHTML = "";
 
         emptyState.classList.remove("hidden");
+        renderOfficerPagination();
 
         return;
     }
@@ -1417,59 +1497,18 @@ function renderComplaintsTable(data) {
         `;
 
     }).join("");
+
+    renderOfficerPagination();
 }
 
 
 function filterComplaints() {
+    clearTimeout(officerFilterTimer);
 
-    const search =
-        document.getElementById("search-input")
-            .value
-            .toLowerCase()
-            .trim();
-
-    const status =
-        document.getElementById("status-filter").value;
-
-    const priority =
-        document.getElementById("priority-filter").value;
-
-    const filtered = complaints.filter(complaint => {
-
-        const text = [
-
-            complaint.id,
-            complaint.complaint_text,
-            complaint.address,
-            complaint.category,
-            complaint.status,
-            complaint.priority
-
-        ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-        const searchMatch =
-            !search || text.includes(search);
-
-        const statusMatch =
-            status === "all" ||
-            complaint.status === status;
-
-        const priorityMatch =
-            priority === "all" ||
-            complaint.priority === priority;
-
-        return searchMatch &&
-               statusMatch &&
-               priorityMatch;
-    });
-
-    renderComplaintsTable(filtered);
+    officerFilterTimer = setTimeout(() => {
+        loadOfficerComplaints(false);
+    }, 350);
 }
-
-
 async function openComplaintModal(complaintId) {
 
     try {
@@ -1794,51 +1833,73 @@ async function confirmEscalate() {
 }
 
 
-async function toggleNotificationsModal() {
 
+let notificationOffset = 0;
+const NOTIFICATION_LIMIT = 20;
+let notificationsLoading = false;
+
+async function toggleNotificationsModal() {
     switchTab("notifications");
 
-    const container =
-        document.getElementById("notification-list");
+    notificationOffset = 0;
+
+    const container = document.getElementById("notification-list");
+
+    container.innerHTML = "";
+
+    await loadOfficerNotifications(true);
+}
+
+async function loadOfficerNotifications(reset = false) {
+    if (notificationsLoading) return;
+
+    const container = document.getElementById("notification-list");
+    if (!container) return;
+
+    notificationsLoading = true;
+
+    const oldButton = document.getElementById("load-more-notifications");
+
+    if (reset) {
+        notificationOffset = 0;
+        container.innerHTML = "";
+    } else {
+        oldButton?.remove();
+    }
 
     try {
-
-        const response =
-            await fetch("/api/officer/notifications");
+        const response = await fetch(
+            `/api/officer/notifications?limit=${NOTIFICATION_LIMIT}&offset=${notificationOffset}`,
+            { credentials: "include" }
+        );
 
         if (!response.ok) {
-
-            container.innerHTML = `
-                <div class="text-xs text-nivada-400">
-                    Notification API unavailable.
-                </div>
-            `;
-
-            return;
+            throw new Error("Notification API unavailable");
         }
 
         const notifications = await response.json();
 
-        if (!notifications.length) {
-
+        if (reset && notifications.length === 0) {
             container.innerHTML = `
                 <div class="p-5 rounded-xl border border-white/10 text-xs text-nivada-400">
                     No notifications.
                 </div>
             `;
-
             return;
         }
 
-        container.innerHTML = notifications.map(notification => `
-            <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+        if (!reset && notifications.length === 0) {
+            return;
+        }
 
+        const html = notifications.map(notification => `
+            <div class="p-4 rounded-xl bg-white/5 border border-white/10">
                 <div class="text-sm text-white font-medium">
                     ${escapeHtml(notification.title || "Notification")}
                 </div>
 
                 <div class="text-xs text-nivada-400 mt-1">
-                    ${escapeHtml(notification.message || notification.description || "")}
+                    ${escapeHtml(notification.message || "")}
                 </div>
 
                 ${
@@ -1850,19 +1911,48 @@ async function toggleNotificationsModal() {
                     `
                     : ""
                 }
-
             </div>
         `).join("");
 
-    } catch (error) {
+        container.insertAdjacentHTML("beforeend", html);
 
-        container.innerHTML = `
-            <div class="text-xs text-nivada-400">
-                Notifications unavailable.
-            </div>
-        `;
+        notificationOffset += notifications.length;
+
+        if (notifications.length === NOTIFICATION_LIMIT) {
+            container.insertAdjacentHTML("beforeend", `
+                <button
+                    id="load-more-notifications"
+                    onclick="loadOfficerNotifications()"
+                    class="w-full mt-3 p-3 rounded-xl border border-white/10 text-sm text-white hover:bg-white/10">
+                    Load more notifications
+                </button>
+            `);
+        }
+
+    } catch (error) {
+        console.error("Officer notifications failed:", error);
+
+        if (reset) {
+            container.innerHTML = `
+                <div class="text-xs text-nivada-400">
+                    Notifications unavailable.
+                </div>
+            `;
+        } else {
+            container.insertAdjacentHTML("beforeend", `
+                <button
+                    id="load-more-notifications"
+                    onclick="loadOfficerNotifications()"
+                    class="w-full mt-3 p-3 rounded-xl border border-white/10 text-sm text-white">
+                    Retry loading notifications
+                </button>
+            `);
+        }
+    } finally {
+        notificationsLoading = false;
     }
 }
+
 
 
 function switchTab(tab) {
