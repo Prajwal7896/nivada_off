@@ -431,38 +431,32 @@
             loadUserHeader();
         });
 
-        async function loadUserHeader() {
+        window.addEventListener("DOMContentLoaded", async () => {
             try {
-                const response = await fetch("/api/user/profile");
+                const csrfResponse = await fetch("/api/csrf-token", {
+                    credentials: "include"
+                });
 
-                if (!response.ok) {
+                if (csrfResponse.status === 401) {
                     window.location.href = "/user/login";
                     return;
                 }
 
-                const user = await response.json();
+                if (!csrfResponse.ok) {
+                    throw new Error("Unable to retrieve CSRF token");
+                }
 
-                const username = user.username || "User";
-                const email = user.email || "";
+                const csrfData = await csrfResponse.json();
+                csrfToken = csrfData.csrf_token;
 
-                document.getElementById("navUserName").textContent = username;
-                document.getElementById("dropdownUserEmail").textContent = email;
-
-                const initials = username
-                    .trim()
-                    .split(/\s+/)
-                    .map(n => n[0])
-                    .join("")
-                    .substring(0, 2)
-                    .toUpperCase();
-
-                document.getElementById("navUserAvatar").textContent =
-                    initials || "U";
+                setupDropdown();
+                loadUserHeader();
 
             } catch (error) {
-                console.error("Failed to load user:", error);
+                console.error("Page initialization error:", error);
+                window.location.href = "/user/login";
             }
-        }
+        });
 
         function setupDropdown() {
             const btn = document.getElementById("userDropdownBtn");
@@ -1072,6 +1066,9 @@
                     "/api/complaints",
                     {
                         method: "POST",
+                        headers: {
+                            "X-CSRF-Token": csrfToken
+                        },
                         body: formData
                     }
                 );
@@ -1402,7 +1399,10 @@
                 await fetch(
                     "/user/logout",
                     {
-                        method: "POST"
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-Token": csrfToken
+                        }
                     }
                 );
 

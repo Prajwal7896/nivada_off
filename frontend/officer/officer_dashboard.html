@@ -1049,7 +1049,7 @@
 let currentOfficer = null;
 let complaints = [];
 let selectedComplaintId = null;
-
+let csrfToken = null;
 let officerComplaintOffset = 0;
 const OFFICER_COMPLAINT_LIMIT = 20;
 let officerComplaintsLoading = false;
@@ -1074,7 +1074,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    await loadOfficerDashboard();
+        try {
+            const csrfResponse = await fetch("/api/csrf-token", {
+                credentials: "include"
+            });
+
+            if (csrfResponse.status === 401) {
+                window.location.href = "/officer/login";
+                return;
+            }
+
+            if (!csrfResponse.ok) {
+                throw new Error("Unable to retrieve CSRF token");
+            }
+
+            const csrfData = await csrfResponse.json();
+            csrfToken = csrfData.csrf_token;
+
+            await loadOfficerDashboard();
+
+        } catch (error) {
+            console.error("Dashboard initialization error:", error);
+            window.location.href = "/officer/login";
+        }
 });
 
 
@@ -1710,7 +1732,8 @@ async function updateComplaintStatus(newStatus, remark = "") {
             {
                 method: "PATCH",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken
                 },
                 body: JSON.stringify({
                     remark: remark.trim()
@@ -2094,7 +2117,11 @@ async function handleLogout() {
     try {
 
         await fetch("/officer/logout", {
-            method: "POST"
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "X-CSRF-Token": csrfToken
+            }
         });
 
     } catch (error) {

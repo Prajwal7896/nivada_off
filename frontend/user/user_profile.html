@@ -449,11 +449,34 @@
         let isEditing = false;
         let originalValues = {};
 
-        window.addEventListener("DOMContentLoaded", async () => {
-            await loadUserProfile();
-            setupDropdown();
-        });
+        let csrfToken = null;
 
+        window.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const csrfResponse = await fetch("/api/csrf-token", {
+                    credentials: "include"
+                });
+
+                if (csrfResponse.status === 401) {
+                    window.location.href = "/user/login";
+                    return;
+                }
+
+                if (!csrfResponse.ok) {
+                    throw new Error("Unable to retrieve CSRF token");
+                }
+
+                const csrfData = await csrfResponse.json();
+                csrfToken = csrfData.csrf_token;
+
+                await loadUserProfile();
+                setupDropdown();
+
+            } catch (error) {
+                console.error("Page initialization error:", error);
+                window.location.href = "/user/login";
+            }
+        });
         async function loadUserProfile() {
             try {
                 const response = await fetch("/api/user/profile", {
@@ -645,10 +668,11 @@
             saveBtn.disabled = true;
 
             try {
-                const response = await fetch("/api/user/profile", {
+               const response = await fetch("/api/user/profile", {
                     method: "PUT",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "X-CSRF-Token": csrfToken
                     },
                     credentials: "same-origin",
                     body: JSON.stringify({
@@ -890,12 +914,22 @@
 
         async function handleLogout() {
             try {
-                await fetch("/api/user/logout", {
+                const response = await fetch("/api/user/logout", {
                     method: "POST",
+                    headers: {
+                        "X-CSRF-Token": csrfToken
+                    },
                     credentials: "same-origin"
                 });
+
+                if (!response.ok) {
+                    console.error("Logout failed:", response.status);
+                    return;
+                }
+
             } catch (error) {
-                console.error(error);
+                console.error("Logout error:", error);
+                return;
             }
 
             window.location.href = "/user/login";
