@@ -18,35 +18,58 @@ from backend.app.db.model import (
 )
 from backend.app.db import redis_client as redis_store
 
-router = APIRouter(prefix="/api")
 
+router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
 CACHE_TTL = 3600
-async def _redis_set(redis, key, value):
+CACHE_VERSION = "v2"
+
+
+async def _redis_set(redis, key: str, value: str):
     await redis.set(key, value, ex=CACHE_TTL)
+
 
 def get_cached_data(cache_key: str, db_loader):
     """
-    Read from Redis first.
-    If Redis misses or fails, fetch from PostgreSQL.
+    Read data from Redis first.
+    If Redis misses or fails, fetch data from PostgreSQL.
+    Cache the PostgreSQL result when Redis is available.
     """
+
+    versioned_key = f"geo:{CACHE_VERSION}:{cache_key}"
 
     redis = redis_store.redis_client
 
     if redis is not None:
         try:
-            cached_data = anyio.from_thread.run(redis.get, cache_key)
+            cached_data = anyio.from_thread.run(
+                redis.get,
+                versioned_key,
+            )
 
-            if cached_data:
+            # Check against None so an empty JSON list is also a valid cache hit.
+            if cached_data is not None:
                 try:
                     return json.loads(cached_data)
-                except json.JSONDecodeError:
-                    logger.warning("Invalid Redis cache: %s", cache_key)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(
+                        "Invalid Redis cache for key: %s",
+                        versioned_key,
+                    )
 
         except RedisError:
-            logger.warning("Redis read failed for %s", cache_key)
+            logger.exception(
+                "Redis read failed for key: %s",
+                versioned_key,
+            )
+        except RuntimeError:
+            logger.exception(
+                "Redis read execution failed for key: %s",
+                versioned_key,
+            )
 
+    # PostgreSQL fallback
     data = db_loader()
 
     if redis is not None:
@@ -56,12 +79,20 @@ def get_cached_data(cache_key: str, db_loader):
             anyio.from_thread.run(
                 _redis_set,
                 redis,
-                cache_key,
+                versioned_key,
                 serialized_data,
             )
 
         except RedisError:
-            logger.warning("Redis write failed for %s", cache_key)
+            logger.exception(
+                "Redis write failed for key: %s",
+                versioned_key,
+            )
+        except RuntimeError:
+            logger.exception(
+                "Redis write execution failed for key: %s",
+                versioned_key,
+            )
 
     return data
 
@@ -69,7 +100,7 @@ def get_cached_data(cache_key: str, db_loader):
 @router.get("/departments")
 def get_departments(db: Session = Depends(get_db)):
     return get_cached_data(
-        "geo:departments",
+        "departments",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(Department)
@@ -82,7 +113,7 @@ def get_departments(db: Session = Depends(get_db)):
 @router.get("/countries")
 def get_countries(db: Session = Depends(get_db)):
     return get_cached_data(
-        "geo:countries",
+        "countries",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(Country)
@@ -95,7 +126,7 @@ def get_countries(db: Session = Depends(get_db)):
 @router.get("/states/{country_id}")
 def get_states(country_id: int, db: Session = Depends(get_db)):
     return get_cached_data(
-        f"geo:states:{country_id}",
+        f"states:{country_id}",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(State)
@@ -109,7 +140,7 @@ def get_states(country_id: int, db: Session = Depends(get_db)):
 @router.get("/districts/{state_id}")
 def get_districts(state_id: int, db: Session = Depends(get_db)):
     return get_cached_data(
-        f"geo:districts:{state_id}",
+        f"districts:{state_id}",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(District)
@@ -123,7 +154,7 @@ def get_districts(state_id: int, db: Session = Depends(get_db)):
 @router.get("/talukas/{district_id}")
 def get_talukas(district_id: int, db: Session = Depends(get_db)):
     return get_cached_data(
-        f"geo:talukas:{district_id}",
+        f"talukas:{district_id}",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(Taluka)
@@ -137,7 +168,7 @@ def get_talukas(district_id: int, db: Session = Depends(get_db)):
 @router.get("/villages/{taluka_id}")
 def get_villages(taluka_id: int, db: Session = Depends(get_db)):
     return get_cached_data(
-        f"geo:villages:{taluka_id}",
+        f"villages:{taluka_id}",
         lambda: [
             {"id": item.id, "name": item.name}
             for item in db.query(Village)
