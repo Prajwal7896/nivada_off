@@ -71,6 +71,22 @@ async def refresh_database_metrics(request, call_next):
     update_db_pool_metrics()
     return response
 
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=()"
+    )
+    if os.getenv("APP_ENV") == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+    return response
+
 Instrumentator().instrument(app).expose(app)
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
 

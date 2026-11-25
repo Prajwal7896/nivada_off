@@ -47,14 +47,15 @@ def get_current_officer(request: Request, db: Session):
 
     return officer
 
-
 @router.get("/officer/dashboard")
 def officer_dashboard(
-    request: Request
+    request: Request,
+    db: Session = Depends(get_db)
 ):
-    officer_id = request.session.get("admin_id")
-
-    if not officer_id:
+    try:
+        get_current_officer(request, db)
+    except HTTPException:
+        request.session.clear()
         return FileResponse(
             FRONTEND_OFFICER_DIR / "officer_login.html"
         )
@@ -62,7 +63,6 @@ def officer_dashboard(
     return FileResponse(
         FRONTEND_OFFICER_DIR / "officer_dashboard.html"
     )
-
 
 @router.get("/api/officer/profile")
 def officer_profile(
