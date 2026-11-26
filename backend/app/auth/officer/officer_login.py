@@ -45,6 +45,7 @@ def officer_login(
         admin.password = hash_password(password)
         db.commit()
 
+    request.session.clear()
     request.session["admin_id"] = admin.id
 
     return RedirectResponse(
@@ -55,7 +56,7 @@ def officer_login(
 
 @router.post("/officer/logout")
 def officer_logout(request: Request):
-    request.session.pop("admin_id", None)
+    request.session.clear()
 
     return RedirectResponse(
         url="/officer/login",

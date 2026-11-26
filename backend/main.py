@@ -69,9 +69,17 @@ async def lifespan(app: FastAPI):
         )
 
     # Connect Redis.
-    await connect_redis()
-
     try:
+        redis_connected = await connect_redis()
+
+        if (
+            os.getenv("APP_ENV", "development").lower() == "production"
+            and not redis_connected
+        ):
+            raise RuntimeError(
+                "Redis connection is required in production"
+            )
+
         yield
     finally:
         await close_redis()

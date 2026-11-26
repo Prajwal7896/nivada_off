@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException , Body
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from backend.app.db.db import get_db
+from backend.app.security.rate_limit import limiter
 from backend.app.db.model import (
     Admin,
     Department,
@@ -261,6 +262,7 @@ def officer_stats(
 
 
 @router.patch("/api/officer/complaints/{complaint_id}/status")
+@limiter.limit("20/minute")
 def update_complaint_status(
     complaint_id: int,
     request: Request,
@@ -295,7 +297,20 @@ def update_complaint_status(
         )
 
     remark = (payload or {}).get("remark", "")
-    remark = remark.strip() if isinstance(remark, str) else ""
+
+    if not isinstance(remark, str):
+        raise HTTPException(
+            status_code=400,
+            detail="Remark must be text"
+        )
+
+    remark = remark.strip()
+
+    if len(remark) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Remark cannot exceed 500 characters"
+        )
 
     old_status = complaint.status
     complaint.status = status

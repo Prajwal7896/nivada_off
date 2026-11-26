@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import os
 
 from backend.app.db.db import get_db
+from backend.app.security.rate_limit import limiter
 from backend.app.db.model import User
 
 router = APIRouter()
@@ -17,9 +18,15 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 
 class ProfileUpdate(BaseModel):
-    username: str
-    phone: str
+    username: str = Field(min_length=2, max_length=50)
+    phone: str = Field(pattern=r"^\d{10}$")
 
+    @field_validator("username", "phone", mode="before")
+    @classmethod
+    def strip_whitespace(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 @router.get("/user/profile")
 def user_profile_page(request: Request):
@@ -80,6 +87,7 @@ def get_user_profile(
 
 
 @router.put("/api/user/profile")
+@limiter.limit("5/minute")
 def update_user_profile(
     data: ProfileUpdate,
     request: Request,

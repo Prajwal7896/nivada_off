@@ -25,6 +25,59 @@ def normalize_filter(value):
     value = str(value).strip()
     return None if not value or value.lower() == "all" else value
 
+
+def validate_insight_filters(
+    country_id=None,
+    state_id=None,
+    district_id=None,
+    taluka_id=None,
+    village_id=None,
+    category_id=None,
+    department_id=None,
+    status=None,
+    priority=None,
+    days=30
+):
+    if not 0 <= days <= 3650:
+        raise HTTPException(
+            status_code=400,
+            detail="Days must be between 0 and 3650"
+        )
+
+    for name, value in (
+        ("country_id", country_id),
+        ("state_id", state_id),
+        ("district_id", district_id),
+        ("taluka_id", taluka_id),
+        ("village_id", village_id),
+        ("category_id", category_id),
+        ("department_id", department_id),
+    ):
+        if value is not None and value < 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{name} must be a positive integer"
+            )
+
+    normalized_status = normalize_filter(status)
+    normalized_priority = normalize_filter(priority)
+
+    if normalized_status is not None and normalized_status.lower() not in {
+        "pending", "in_progress", "resolved", "rejected"
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid status filter"
+        )
+
+    if normalized_priority is not None and normalized_priority.lower() not in {
+        "high", "medium", "low"
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid priority filter"
+        )
+
 def apply_location_filters(query, country_id=None, state_id=None, district_id=None, taluka_id=None, village_id=None):
     if country_id is not None: query = query.filter(Complaint.country_id == country_id)
     if state_id is not None: query = query.filter(Complaint.state_id == state_id)
@@ -95,6 +148,10 @@ def insights_page(request: Request):
 @router.get("/api/user/insights")
 def get_insights(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, category_id: Optional[int] = None, department_id: Optional[int] = None, status: Optional[str] = None, priority: Optional[str] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
+    validate_insight_filters(
+        country_id, state_id, district_id, taluka_id, village_id,
+        category_id, department_id, status, priority, days
+    )
     days = max(0, days)
     base_query = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, None, status, priority, days)
     complaints = base_query.all()
@@ -135,7 +192,23 @@ def get_insights(request: Request, country_id: Optional[int] = None, state_id: O
 
     ageing = calculate_ageing([c for c in complaints if c.status == "pending"])
     resolution_time = calculate_resolution_times(complaints, category_lookup)
-    confidence_distribution = [round(max(0, min(1, float(c.ai_confidence))) * 100, 2) for c in complaints if c.ai_confidence is not None]
+    confidence_distribution = [0, 0, 0, 0, 0, 0]
+    for complaint in complaints:
+        if complaint.ai_confidence is None:
+            continue
+        confidence = max(0, min(100, float(complaint.ai_confidence) * 100))
+        if confidence < 60:
+            confidence_distribution[0] += 1
+        elif confidence < 70:
+            confidence_distribution[1] += 1
+        elif confidence < 80:
+            confidence_distribution[2] += 1
+        elif confidence < 90:
+            confidence_distribution[3] += 1
+        elif confidence < 95:
+            confidence_distribution[4] += 1
+        else:
+            confidence_distribution[5] += 1
 
     current_start = datetime.utcnow() - timedelta(days=days)
     previous_query = apply_location_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id)
@@ -190,14 +263,73 @@ def get_geography(request: Request, level: str, parent_id: Optional[int] = None,
 @router.get("/api/user/insights/map")
 def get_map_data(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, category_id: Optional[int] = None, department_id: Optional[int] = None, status: Optional[str] = None, priority: Optional[str] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
-    query = apply_complaint_filters(db.query(Complaint, ComplaintCategory.name.label("category_name")).outerjoin(ComplaintCategory, Complaint.category_id == ComplaintCategory.id), country_id, state_id, district_id, taluka_id, village_id, category_id, department_id, status, priority, days)
-    rows = query.filter(Complaint.latitude.isnot(None), Complaint.longitude.isnot(None)).all()
-    markers = [{"id": c.id, "latitude": c.latitude, "longitude": c.longitude, "category": cat_name or "Unknown", "category_id": c.category_id, "status": c.status, "priority": c.priority, "text": c.complaint_text or "", "timestamp": c.timestamp.isoformat() if c.timestamp else None} for c, cat_name in rows]
-    return {"markers": markers, "count": len(markers), "location": get_location(db, country_id, state_id, district_id, taluka_id, village_id)}
+    validate_insight_filters(
+        country_id, state_id, district_id, taluka_id, village_id,
+        category_id, department_id, status, priority, days
+    )
+
+    query = apply_complaint_filters(
+        db.query(Complaint),
+        country_id, state_id, district_id, taluka_id, village_id,
+        category_id, department_id, status, priority, days
+    )
+    rows = query.filter(
+        Complaint.latitude.isnot(None),
+        Complaint.longitude.isnot(None)
+    ).all()
+
+    cells = {}
+    for complaint in rows:
+        lat = round(float(complaint.latitude), 2)
+        lng = round(float(complaint.longitude), 2)
+        key = (lat, lng)
+
+        if key not in cells:
+            cells[key] = {
+                "latitude": lat,
+                "longitude": lng,
+                "count": 0,
+                "categories": {},
+                "statuses": {},
+                "priorities": {}
+            }
+
+        cell = cells[key]
+        cell["count"] += 1
+
+        category = db.query(ComplaintCategory.name).filter(
+            ComplaintCategory.id == complaint.category_id
+        ).scalar() if complaint.category_id else None
+
+        category = category or "Unknown"
+        complaint_status = str(complaint.status or "Unknown")
+        complaint_priority = str(complaint.priority or "Unknown")
+
+        cell["categories"][category] = cell["categories"].get(category, 0) + 1
+        cell["statuses"][complaint_status] = cell["statuses"].get(complaint_status, 0) + 1
+        cell["priorities"][complaint_priority] = cell["priorities"].get(complaint_priority, 0) + 1
+
+    markers = [
+        cell for cell in cells.values()
+        if cell["count"] >= 3
+    ]
+
+    return {
+        "markers": markers,
+        "count": sum(cell["count"] for cell in markers),
+        "location": get_location(
+            db, country_id, state_id, district_id, taluka_id, village_id
+        )
+    }
+
 
 @router.get("/api/user/insights/category-status")
 def category_status_matrix(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
+    validate_insight_filters(
+        country_id, state_id, district_id, taluka_id, village_id,
+        days=days
+    )
     rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, days=days).join(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(ComplaintCategory.name, Complaint.status, func.count(Complaint.id)).group_by(ComplaintCategory.name, Complaint.status).all()
     result = {}
     for category, status, count in rows:
@@ -208,12 +340,53 @@ def category_status_matrix(request: Request, country_id: Optional[int] = None, s
 @router.get("/api/user/insights/export")
 def export_insights(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, category_id: Optional[int] = None, department_id: Optional[int] = None, status: Optional[str] = None, priority: Optional[str] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
-    query = apply_complaint_filters(db.query(Complaint, ComplaintCategory.name.label("category_name"), Department.name.label("department_name")).outerjoin(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).outerjoin(Department, Complaint.department_id == Department.id), country_id, state_id, district_id, taluka_id, village_id, category_id, department_id, status, priority, days)
-    rows = query.order_by(Complaint.timestamp.desc()).all()
+    validate_insight_filters(
+        country_id, state_id, district_id, taluka_id, village_id,
+        category_id, department_id, status, priority, days
+    )
+
+    query = apply_complaint_filters(
+        db.query(
+            ComplaintCategory.name.label("category_name"),
+            Department.name.label("department_name"),
+            Complaint.status,
+            Complaint.priority,
+            func.count(Complaint.id).label("total")
+        )
+        .outerjoin(ComplaintCategory, Complaint.category_id == ComplaintCategory.id)
+        .outerjoin(Department, Complaint.department_id == Department.id),
+        country_id, state_id, district_id, taluka_id, village_id,
+        category_id, department_id, status, priority, days
+    )
+
+    rows = query.group_by(
+        ComplaintCategory.name,
+        Department.name,
+        Complaint.status,
+        Complaint.priority
+    ).order_by(
+        ComplaintCategory.name,
+        Department.name,
+        Complaint.status,
+        Complaint.priority
+    ).all()
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Complaint ID", "Complaint", "Category", "Department", "Status", "Priority", "Latitude", "Longitude", "AI Confidence", "Created At"])
-    for complaint, category, department in rows:
-        writer.writerow([complaint.id, complaint.complaint_text or "", category or "", department or "", complaint.status or "", complaint.priority or "", complaint.latitude, complaint.longitude, complaint.ai_confidence, complaint.timestamp])
+    writer.writerow(["Category", "Department", "Status", "Priority", "Complaint Count"])
+
+    for category, department, complaint_status, complaint_priority, total in rows:
+        writer.writerow([
+            category or "Unknown",
+            department or "Unknown",
+            complaint_status or "Unknown",
+            complaint_priority or "Unknown",
+            total
+        ])
+
     output.seek(0)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=nivada_insights.csv"})
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=nivada_aggregated_insights.csv"}
+    )

@@ -3,9 +3,9 @@ from pathlib import Path
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
 from backend.app.db.db import get_db
+from backend.app.security.rate_limit import limiter
 
 from backend.app.dashboard.user.comp_store import (
     get_user_complaints,
@@ -24,8 +24,7 @@ FRONTEND_USER_DIR = BASE_DIR / "frontend" / "user"
 
 class ResolutionVerification(BaseModel):
     verified: bool
-    feedback: str | None = None
-
+    feedback: str | None = Field(default=None, max_length=500)
 
 @router.get("/user/dashboard")
 def user_dashboard(request: Request):
@@ -104,6 +103,7 @@ def user_complaint(
 
 
 @router.delete("/api/user/complaints/{complaint_id}")
+@limiter.limit("5/minute")
 def delete_complaint(
     complaint_id: int,
     request: Request,
@@ -136,6 +136,7 @@ def delete_complaint(
 
 
 @router.post("/api/user/complaints/{complaint_id}/verify")
+@limiter.limit("10/minute")
 def verify_complaint(
     complaint_id: int,
     data: ResolutionVerification,
@@ -155,7 +156,7 @@ def verify_complaint(
         complaint_id=complaint_id,
         user_id=user_id,
         verified=data.verified,
-        feedback=data.feedback
+        feedback=data.feedback.strip() if data.feedback else None
     )
 
     if not success:

@@ -19,7 +19,7 @@ def choose(request: Request):
             status_code=303
         )
 
-    if request.session.get("officer_id"):
+    if request.session.get("admin_id"):
         return RedirectResponse(
             url="/officer/dashboard",
             status_code=303

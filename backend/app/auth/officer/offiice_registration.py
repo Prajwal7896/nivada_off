@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -37,6 +38,35 @@ def officer_register(
     confirm_password: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    name = name.strip()
+    email = email.strip().lower()
+    phone = phone.strip()
+    employee_code = employee_code.strip()
+    designation = designation.strip()
+
+    invalid = (
+        not 2 <= len(name) <= 80
+        or any(ord(ch) < 32 for ch in name)
+        or len(email) > 254
+        or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)
+        or not re.fullmatch(r"\d{10}", phone)
+        or not 2 <= len(employee_code) <= 40
+        or any(ord(ch) < 32 for ch in employee_code)
+        or not 2 <= len(designation) <= 80
+        or any(ord(ch) < 32 for ch in designation)
+        or not 8 <= len(password) <= 128
+    )
+
+    if invalid:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "validation",
+                "message": "Please check your name, email, phone, employee code, designation, and password."
+            }
+        )
+
     if password != confirm_password:
         return JSONResponse(
             status_code=400,
@@ -171,7 +201,7 @@ def officer_register(
             content={
                 "success": False,
                 "error": "database",
-                "message": str(e.orig)
+                "message": "Registration could not be completed. Please check your details and try again."
             }
         )
 

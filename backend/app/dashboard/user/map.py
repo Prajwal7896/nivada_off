@@ -429,42 +429,54 @@ def get_map_data(
         Complaint.timestamp.desc()
     ).all()
 
-    markers = []
+    cells = {}
 
     for complaint in complaints:
         if complaint.latitude is None or complaint.longitude is None:
             continue
 
-        category_name = None
+        lat = round(float(complaint.latitude), 2)
+        lng = round(float(complaint.longitude), 2)
+        key = (lat, lng)
 
+        if key not in cells:
+            cells[key] = {
+                "latitude": lat,
+                "longitude": lng,
+                "count": 0,
+                "categories": {},
+                "statuses": {},
+                "priorities": {}
+            }
+
+        cell = cells[key]
+        cell["count"] += 1
+
+        category_name = "Unknown"
         if complaint.category_id:
-            category = (
-                db.query(ComplaintCategory)
-                .filter(
-                    ComplaintCategory.id == complaint.category_id
-                )
-                .first()
-            )
-
+            category = db.query(ComplaintCategory).filter(
+                ComplaintCategory.id == complaint.category_id
+            ).first()
             if category:
                 category_name = category.name
 
-        markers.append({
-            "id": complaint.id,
-            "latitude": complaint.latitude,
-            "longitude": complaint.longitude,
-            "category": category_name,
-            "category_name": category_name,
-            "category_id": complaint.category_id,
-            "status": complaint.status,
-            "priority": complaint.priority,
-            "complaint_text": complaint.complaint_text,
-            "ai_confidence": complaint.ai_confidence,
-            "timestamp": complaint.timestamp.isoformat()
-            if complaint.timestamp
-            else None,
-            "address": complaint.address
-        })
+        status_name = str(complaint.status or "Unknown")
+        priority_name = str(complaint.priority or "Unknown")
+
+        cell["categories"][category_name] = (
+            cell["categories"].get(category_name, 0) + 1
+        )
+        cell["statuses"][status_name] = (
+            cell["statuses"].get(status_name, 0) + 1
+        )
+        cell["priorities"][priority_name] = (
+            cell["priorities"].get(priority_name, 0) + 1
+        )
+
+    markers = [
+        cell for cell in cells.values()
+        if cell["count"] >= 3
+    ]
 
     boundaries = None
 

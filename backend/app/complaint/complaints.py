@@ -10,6 +10,7 @@ from functools import lru_cache
 from prometheus_client import Counter, Histogram , Gauge
 import time
 from backend.app.complaint.decode import get_admin_location
+from backend.app.security.rate_limit import limiter
 from backend.app.db.db import get_db
 from backend.app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
 
@@ -246,6 +247,7 @@ def find_assigned_admin(
 
 
 @router.post("/complaints")
+@limiter.limit("5/minute")
 async def create_complaint(
     request: Request,
     description: str = Form(...),
@@ -282,16 +284,16 @@ async def create_complaint(
     description = description.strip()
     address = address.strip()
 
-    if len(description) < 10:
+    if len(description) < 10 or len(description) > 2000:
         raise HTTPException(
             status_code=400,
-            detail="Complaint description must contain at least 10 characters"
+            detail="Complaint description must contain 10 to 2000 characters"
         )
 
-    if len(description) > 2000:
+    if len(address) > 300:
         raise HTTPException(
             status_code=400,
-            detail="Complaint description cannot exceed 2000 characters"
+            detail="Address cannot exceed 300 characters"
         )
 
     if not address:
@@ -300,7 +302,30 @@ async def create_complaint(
             detail="Address is required"
         )
 
+    if any(ord(ch) < 32 and ch not in "\\t\\n\\r" for ch in description + address):
+        raise HTTPException(
+            status_code=400,
+            detail="Description or address contains invalid control characters"
+        )
+
+    if (latitude is None) != (longitude is None):
+        raise HTTPException(
+            status_code=400,
+            detail="Latitude and longitude must be provided together"
+        )
+
     if latitude is not None and longitude is not None:
+        if not (-90 <= latitude <= 90):
+            raise HTTPException(
+                status_code=400,
+                detail="Latitude must be between -90 and 90"
+            )
+
+        if not (-180 <= longitude <= 180):
+            raise HTTPException(
+                status_code=400,
+                detail="Longitude must be between -180 and 180"
+            )
         location = get_admin_location(
             db,
             latitude,
@@ -382,24 +407,54 @@ async def create_complaint(
 
     if image:
         allowed_types = {
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/webp"
+            "image/jpeg", "image/jpg", "image/png", "image/webp"
         }
 
-        if image.content_type not in allowed_types:
+        if (image.content_type or "").lower() not in allowed_types:
             raise HTTPException(
                 status_code=400,
                 detail="Only JPG, JPEG, PNG and WEBP images are allowed"
             )
 
-        image_data = await image.read()
+        image_data = await image.read(5 * 1024 * 1024 + 1)
+
+        if not image_data:
+            raise HTTPException(status_code=400, detail="Image cannot be empty")
 
         if len(image_data) > 5 * 1024 * 1024:
             raise HTTPException(
                 status_code=400,
                 detail="Image size cannot exceed 5 MB"
+            )
+
+        signatures = {
+            "image/jpeg": (b"\\xff\\xd8\\xff", ".jpg"),
+            "image/png": (b"\\x89PNG\\r\\n\\x1a\\n", ".png"),
+            "image/webp": (b"RIFF", ".webp")
+        }
+
+        detected_type = None
+        extension = None
+
+        for mime, (signature, ext) in signatures.items():
+            if image_data.startswith(signature):
+                if mime == "image/webp":
+                    if len(image_data) >= 12 and image_data[8:12] == b"WEBP":
+                        detected_type, extension = mime, ext
+                else:
+                    detected_type, extension = mime, ext
+                break
+
+        if not detected_type:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is not a supported image"
+            )
+
+        if detected_type != ("image/jpeg" if image.content_type.lower() == "image/jpg" else image.content_type.lower()):
+            raise HTTPException(
+                status_code=400,
+                detail="Image content does not match its declared file type"
             )
 
         upload_dir = os.path.abspath(
@@ -408,28 +463,12 @@ async def create_complaint(
                 "../../uploads/complaints"
             )
         )
+        os.makedirs(upload_dir, exist_ok=True)
 
-        os.makedirs(
-            upload_dir,
-            exist_ok=True
-        )
+        filename = f"user_{user_id}_{os.urandom(16).hex()}{extension}"
+        image_path = os.path.join(upload_dir, filename)
 
-        extension = os.path.splitext(
-            image.filename
-        )[1].lower()
-
-        filename = (
-            f"user_{user_id}_"
-            f"{os.urandom(8).hex()}"
-            f"{extension}"
-        )
-
-        image_path = os.path.join(
-            upload_dir,
-            filename
-        )
-
-        with open(image_path, "wb") as f:
+        with open(image_path, "xb") as f:
             f.write(image_data)
 
     complaint = Complaint(

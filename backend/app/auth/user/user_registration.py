@@ -7,6 +7,7 @@ from backend.app.db.model import User
 from backend.app.security.rate_limit import limiter
 from backend.app.security.password import hash_password
 import os
+import re
 
 router = APIRouter()
 
@@ -32,6 +33,25 @@ def user_register_submit(
     confirm_password: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    fullname = fullname.strip()
+    email = email.strip().lower()
+    phone = phone.strip()
+
+    invalid = (
+        not 2 <= len(fullname) <= 80
+        or any(ord(ch) < 32 for ch in fullname)
+        or len(email) > 254
+        or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)
+        or not re.fullmatch(r"\d{10}", phone)
+        or not 8 <= len(password) <= 128
+        or password != confirm_password
+    )
+
+    if invalid:
+        return FileResponse(
+            os.path.join(FRONTEND_DIR, "user_register.html")
+        )
+
     existing_user = db.query(User).filter(
         User.email == email
     ).first()
