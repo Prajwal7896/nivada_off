@@ -426,10 +426,8 @@
 
         let submittedComplaint = null;
 
-        window.addEventListener("DOMContentLoaded", () => {
-            setupDropdown();
-            loadUserHeader();
-        });
+                
+        let csrfToken = null;
 
         window.addEventListener("DOMContentLoaded", async () => {
             try {
@@ -450,11 +448,17 @@
                 csrfToken = csrfData.csrf_token;
 
                 setupDropdown();
-                loadUserHeader();
+
+                console.log("CSRF token initialized successfully");
 
             } catch (error) {
                 console.error("Page initialization error:", error);
-                window.location.href = "/user/login";
+
+                showToast(
+                    "Page Initialization Failed",
+                    "Unable to initialize security. Please refresh the page.",
+                    "error"
+                );
             }
         });
 
