@@ -491,10 +491,31 @@ async def create_complaint(
         "status": complaint.status
     }
 
+
 @router.get("/prediction-logs")
 def get_prediction_logs(
+    request: Request,
     db: Session = Depends(get_db)
 ):
+    officer_id = request.session.get("admin_id")
+
+    if not officer_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+    officer = db.query(Admin).filter(
+        Admin.id == officer_id,
+        Admin.role == "officer"
+    ).first()
+
+    if not officer:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+
     logs = (
         db.query(PredictionLog)
         .order_by(PredictionLog.created_at.desc())
