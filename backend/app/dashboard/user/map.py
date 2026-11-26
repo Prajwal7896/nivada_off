@@ -428,18 +428,27 @@ def get_map_data(
             Complaint.priority == priority
         )
 
-    complaints = query.order_by(
+    complaints = query.outerjoin(
+        ComplaintCategory,
+        Complaint.category_id == ComplaintCategory.id
+    ).with_entities(
+        Complaint.latitude,
+        Complaint.longitude,
+        Complaint.status,
+        Complaint.priority,
+        ComplaintCategory.name
+    ).order_by(
         Complaint.timestamp.desc()
     ).all()
 
     cells = {}
 
-    for complaint in complaints:
-        if complaint.latitude is None or complaint.longitude is None:
+    for latitude, longitude, status_value, priority_value, category_value in complaints:
+        if latitude is None or longitude is None:
             continue
 
-        lat = round(float(complaint.latitude), 2)
-        lng = round(float(complaint.longitude), 2)
+        lat = round(float(latitude), 2)
+        lng = round(float(longitude), 2)
         key = (lat, lng)
 
         if key not in cells:
@@ -455,16 +464,9 @@ def get_map_data(
         cell = cells[key]
         cell["count"] += 1
 
-        category_name = "Unknown"
-        if complaint.category_id:
-            category = db.query(ComplaintCategory).filter(
-                ComplaintCategory.id == complaint.category_id
-            ).first()
-            if category:
-                category_name = category.name
-
-        status_name = str(complaint.status or "Unknown")
-        priority_name = str(complaint.priority or "Unknown")
+        category_name = category_value or "Unknown"
+        status_name = str(status_value or "Unknown")
+        priority_name = str(priority_value or "Unknown")
 
         cell["categories"][category_name] = (
             cell["categories"].get(category_name, 0) + 1
@@ -651,7 +653,8 @@ def get_map_data(
     }
 
 
-@router.get("/api/user/insights")
+@router.get("/api/user/map/summary")
+@cache_complaint_response("user_map_summary")
 def get_insights(
     request: Request,
     country_id: int | None = None,
@@ -692,60 +695,39 @@ def get_insights(
     if priority:
         query = query.filter(Complaint.priority == priority)
 
-    complaints = query.all()
-
-    total = len(complaints)
-
-    pending = sum(
-        1 for c in complaints
-        if str(c.status).lower() == "pending"
-    )
-
-    in_progress = sum(
-        1 for c in complaints
-        if str(c.status).lower() in {
-            "in progress",
-            "in_progress"
-        }
-    )
-
-    resolved = sum(
-        1 for c in complaints
-        if str(c.status).lower() == "resolved"
-    )
-
-    category_counts = {}
-
-    for complaint in complaints:
-        if complaint.category_id:
-            category = (
-                db.query(ComplaintCategory)
-                .filter(
-                    ComplaintCategory.id == complaint.category_id
-                )
-                .first()
-            )
-
-            name = category.name if category else "Unknown"
-        else:
-            name = "Unknown"
-
-        category_counts[name] = (
-            category_counts.get(name, 0) + 1
+    summary_row = query.with_entities(
+        func.count(Complaint.id),
+        func.count(Complaint.id).filter(
+            func.lower(Complaint.status) == "pending"
+        ),
+        func.count(Complaint.id).filter(
+            func.lower(Complaint.status).in_(["in progress", "in_progress"])
+        ),
+        func.count(Complaint.id).filter(
+            func.lower(Complaint.status) == "resolved"
         )
+    ).one()
+
+    total, pending, in_progress, resolved = (
+        int(value or 0) for value in summary_row
+    )
+
+    category_rows = query.outerjoin(
+        ComplaintCategory,
+        Complaint.category_id == ComplaintCategory.id
+    ).with_entities(
+        func.coalesce(ComplaintCategory.name, "Unknown"),
+        func.count(Complaint.id).label("count")
+    ).group_by(
+        func.coalesce(ComplaintCategory.name, "Unknown")
+    ).order_by(
+        func.count(Complaint.id).desc()
+    ).all()
 
     category_distribution = [
-        {
-            "name": name,
-            "count": count
-        }
-        for name, count in category_counts.items()
+        {"name": name, "count": int(count)}
+        for name, count in category_rows
     ]
-
-    category_distribution.sort(
-        key=lambda x: x["count"],
-        reverse=True
-    )
 
     return {
         "summary": {

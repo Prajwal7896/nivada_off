@@ -476,17 +476,59 @@ async function loadMapData() {
         const params = buildMapParams();
         const query = params.toString();
         const mapUrl = query ? `/api/user/map?${query}` : "/api/user/map";
-        const insightUrl = query ? `/api/user/insights?${query}` : "/api/user/insights";
-        const [mapData, insightData] = await Promise.all([apiGet(mapUrl), apiGet(insightUrl)]);
+        const insightUrl = query ? `/api/user/map/summary?${query}` : "/api/user/map/summary";
+        const mapData = await apiGet(mapUrl);
         if (currentRequest !== requestVersion) return;
-        app.complaints = Array.isArray(mapData.complaints) ? mapData.complaints : Array.isArray(mapData.markers) ? mapData.markers : Array.isArray(mapData.data) ? mapData.data : [];
+
+        app.complaints = Array.isArray(mapData.complaints)
+            ? mapData.complaints
+            : Array.isArray(mapData.markers)
+                ? mapData.markers
+                : Array.isArray(mapData.data)
+                    ? mapData.data
+                    : [];
+
         app.boundaries = mapData.boundaries || mapData.geojson || mapData.boundary || null;
-        updateStats(insightData);
-        updateTopIssues(insightData);
+
         updateLocationInfo(mapData);
         renderLayers();
+
+        try {
+            const insightData = await apiGet(insightUrl);
+            if (currentRequest !== requestVersion) return;
+            updateStats(insightData);
+            updateTopIssues(insightData);
+        } catch (insightError) {
+            console.error("Insights API failed; keeping map data:", insightError);
+
+            const summary = { total: 0, pending: 0, in_progress: 0, resolved: 0 };
+            const categoryCounts = {};
+
+            app.complaints.forEach(marker => {
+                summary.total += Number(marker.count || 0);
+
+                const statuses = marker.statuses || {};
+                summary.pending += Number(statuses.pending || 0);
+                summary.in_progress += Number(
+                    statuses.in_progress || statuses["in progress"] || 0
+                );
+                summary.resolved += Number(statuses.resolved || 0);
+
+                Object.entries(marker.categories || {}).forEach(([name, count]) => {
+                    categoryCounts[name] = (categoryCounts[name] || 0) + Number(count || 0);
+                });
+            });
+
+            updateStats({ summary });
+            updateTopIssues({
+                category_distribution: Object.entries(categoryCounts).map(([name, count]) => ({
+                    name,
+                    count
+                }))
+            });
+        }
     } catch (error) {
-        console.error("Map loading error:", error);
+        console.error("Map API failed:", error);
         app.complaints = [];
         app.boundaries = null;
         updateStats({});

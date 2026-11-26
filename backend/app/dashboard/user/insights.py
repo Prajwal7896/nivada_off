@@ -130,9 +130,15 @@ def calculate_resolution_times(complaints, category_lookup):
 
 def build_ai_insights(category_distribution, category_priority, current_complaints, previous_complaints, category_lookup):
     top_issue = category_distribution[0] if category_distribution else None
-    get_counts = lambda items: {category_lookup.get(i.category_id, "Unknown"): sum(1 for x in items if category_lookup.get(x.category_id, "Unknown") == category_lookup.get(i.category_id, "Unknown")) for i in items}
+    def get_counts(items):
+        counts = {}
+        for item in items:
+            category = category_lookup.get(item.category_id, "Unknown")
+            counts[category] = counts.get(category, 0) + 1
+        return counts
     
-    curr_counts, prev_counts = get_counts(current_complaints), get_counts(previous_complaints)
+    curr_counts = get_counts(current_complaints)
+    prev_counts = get_counts(previous_complaints)
     emerging = max([{"category": cat, "current": cur, "previous": prev_counts.get(cat, 0), "growth": round((cur - prev_counts.get(cat, 0)) / prev_counts.get(cat, 0) * 100 if prev_counts.get(cat, 0) > 0 else (100 if cur > 0 else 0), 2)} for cat, cur in curr_counts.items()], key=lambda x: x["growth"], default=None)
     
     high_priority = max([{"category": cat, "high": vals.get("high", 0), "total": sum(vals.values()), "percentage": round(vals.get("high", 0) / sum(vals.values()) * 100, 2)} for cat, vals in category_priority.items() if sum(vals.values()) > 0], key=lambda x: x["percentage"], default=None)
@@ -157,24 +163,52 @@ def get_insights(request: Request, country_id: Optional[int] = None, state_id: O
     )
     days = max(0, days)
     base_query = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, None, status, priority, days)
-    complaints = base_query.all()
-    category_lookup = {r[0]: r[1] for r in db.query(ComplaintCategory.id, ComplaintCategory.name).all()}
+    current_time = datetime.utcnow()
     
     category_rows = base_query.join(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(ComplaintCategory.id, ComplaintCategory.name, func.count(Complaint.id)).group_by(ComplaintCategory.id, ComplaintCategory.name).order_by(func.count(Complaint.id).desc()).all()
     category_distribution = [{"id": r[0], "name": r[1], "count": r[2]} for r in category_rows]
 
-    total = len(complaints)
-    pending, in_progress, resolved, rejected = sum(1 for c in complaints if c.status == "pending"), sum(1 for c in complaints if c.status == "in_progress"), sum(1 for c in complaints if c.status == "resolved"), sum(1 for c in complaints if c.status == "rejected")
+    summary_row = base_query.with_entities(
+        func.count(Complaint.id),
+        func.count(Complaint.id).filter(Complaint.status == "pending"),
+        func.count(Complaint.id).filter(Complaint.status == "in_progress"),
+        func.count(Complaint.id).filter(Complaint.status == "resolved"),
+        func.count(Complaint.id).filter(Complaint.status == "rejected"),
+        func.avg(
+            func.greatest(
+                0,
+                func.extract("epoch", Complaint.updated_at - Complaint.timestamp) / 86400.0
+            )
+        ).filter(
+            Complaint.status == "resolved",
+            Complaint.timestamp.isnot(None),
+            Complaint.updated_at.isnot(None)
+        )
+    ).one()
+
+    total, pending, in_progress, resolved, rejected = (
+        int(value or 0) for value in summary_row[:5]
+    )
     resolution_rate = round((resolved / total) * 100, 2) if total else 0
+    avg_resolution_time = round(float(summary_row[5] or 0), 2)
 
-    resolved_times = [max(0, ((c.updated_at.replace(tzinfo=None) if c.updated_at.tzinfo else c.updated_at) - (c.timestamp.replace(tzinfo=None) if c.timestamp.tzinfo else c.timestamp)).total_seconds() / 86400) for c in complaints if c.status == "resolved" and c.timestamp and c.updated_at]
-    avg_resolution_time = round(sum(resolved_times) / len(resolved_times), 2) if resolved_times else 0
+    status_distribution = {
+        "pending": pending,
+        "in_progress": in_progress,
+        "resolved": resolved,
+        "rejected": rejected
+    }
 
-    status_distribution = {"pending": pending, "in_progress": in_progress, "resolved": resolved, "rejected": rejected}
+    priority_rows = base_query.with_entities(
+        func.coalesce(func.lower(Complaint.priority), "unknown"),
+        func.count(Complaint.id)
+    ).group_by(
+        func.coalesce(func.lower(Complaint.priority), "unknown")
+    ).all()
+
     priority_distribution = {"high": 0, "medium": 0, "low": 0}
-    for c in complaints:
-        p_val = str(c.priority).lower() if c.priority else "unknown"
-        priority_distribution[p_val] = priority_distribution.get(p_val, 0) + 1
+    for priority_name, count in priority_rows:
+        priority_distribution[priority_name] = int(count)
 
     department_rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, department_id, status, priority, days).join(Department, Complaint.department_id == Department.id).with_entities(Department.id, Department.name, func.count(Complaint.id)).group_by(Department.id, Department.name).order_by(func.count(Complaint.id).desc()).all()
     department_distribution = [{"id": r[0], "name": r[1], "count": r[2]} for r in department_rows]
@@ -182,56 +216,209 @@ def get_insights(request: Request, country_id: Optional[int] = None, state_id: O
     trend_rows = base_query.with_entities(func.date_trunc("day", Complaint.timestamp).label("date"), func.count(Complaint.id)).group_by("date").order_by("date").all()
     monthly_trend = [{"date": r[0].strftime("%Y-%m-%d"), "count": r[1]} for r in trend_rows if r[0]]
 
+    category_rows = base_query.outerjoin(
+        ComplaintCategory, Complaint.category_id == ComplaintCategory.id
+    ).with_entities(
+        func.coalesce(ComplaintCategory.name, "Unknown").label("category"),
+        func.lower(func.coalesce(Complaint.status, "")).label("status"),
+        func.lower(func.coalesce(Complaint.priority, "")).label("priority"),
+        func.count(Complaint.id).label("count")
+    ).group_by(
+        func.coalesce(ComplaintCategory.name, "Unknown"),
+        func.lower(func.coalesce(Complaint.status, "")),
+        func.lower(func.coalesce(Complaint.priority, ""))
+    ).all()
+
     category_status, category_priority = {}, {}
-    for c in complaints:
-        cat_name = category_lookup.get(c.category_id, "Unknown")
-        category_status.setdefault(cat_name, {"pending": 0, "in_progress": 0, "resolved": 0, "rejected": 0})
-        c_status = str(c.status).lower() if c.status else ""
-        if c_status in category_status[cat_name]: category_status[cat_name][c_status] += 1
+    for category, status_value, priority_value, count in category_rows:
+        category_status.setdefault(
+            category, {"pending": 0, "in_progress": 0, "resolved": 0, "rejected": 0}
+        )
+        category_priority.setdefault(
+            category, {"high": 0, "medium": 0, "low": 0}
+        )
+        if status_value in category_status[category]:
+            category_status[category][status_value] += int(count)
+        if priority_value in category_priority[category]:
+            category_priority[category][priority_value] += int(count)
 
-        category_priority.setdefault(cat_name, {"high": 0, "medium": 0, "low": 0})
-        c_priority = str(c.priority).lower() if c.priority else ""
-        if c_priority in category_priority[cat_name]: category_priority[cat_name][c_priority] += 1
+    age_days = func.greatest(
+        0,
+        func.floor(
+            func.extract("epoch", current_time - Complaint.timestamp) / 86400.0
+        )
+    )
 
-    ageing = calculate_ageing([c for c in complaints if c.status == "pending"])
-    resolution_time = calculate_resolution_times(complaints, category_lookup)
-    confidence_distribution = [0, 0, 0, 0, 0, 0]
-    for complaint in complaints:
-        if complaint.ai_confidence is None:
-            continue
-        confidence = max(0, min(100, float(complaint.ai_confidence) * 100))
-        if confidence < 60:
-            confidence_distribution[0] += 1
-        elif confidence < 70:
-            confidence_distribution[1] += 1
-        elif confidence < 80:
-            confidence_distribution[2] += 1
-        elif confidence < 90:
-            confidence_distribution[3] += 1
-        elif confidence < 95:
-            confidence_distribution[4] += 1
-        else:
-            confidence_distribution[5] += 1
+    ageing_row = base_query.filter(
+        Complaint.status == "pending",
+        Complaint.timestamp.isnot(None)
+    ).with_entities(
+        func.count(Complaint.id).filter(age_days <= 3),
+        func.count(Complaint.id).filter(age_days > 3, age_days <= 7),
+        func.count(Complaint.id).filter(age_days > 7, age_days <= 15),
+        func.count(Complaint.id).filter(age_days > 15)
+    ).one()
+
+    ageing = {
+        "0_3": int(ageing_row[0] or 0),
+        "4_7": int(ageing_row[1] or 0),
+        "8_15": int(ageing_row[2] or 0),
+        "15_plus": int(ageing_row[3] or 0)
+    }
+
+    resolution_rows = base_query.outerjoin(
+        ComplaintCategory,
+        Complaint.category_id == ComplaintCategory.id
+    ).filter(
+        Complaint.status == "resolved",
+        Complaint.timestamp.isnot(None),
+        Complaint.updated_at.isnot(None)
+    ).with_entities(
+        func.coalesce(ComplaintCategory.name, "Unknown"),
+        func.avg(
+            func.greatest(
+                0,
+                func.extract(
+                    "epoch", Complaint.updated_at - Complaint.timestamp
+                ) / 86400.0
+            )
+        )
+    ).group_by(
+        func.coalesce(ComplaintCategory.name, "Unknown")
+    ).all()
+
+    resolution_time = [
+        {"category": category, "days": round(float(avg_days or 0), 2)}
+        for category, avg_days in resolution_rows
+    ]
+    resolution_time.sort(key=lambda item: item["days"], reverse=True)
+    confidence_row = base_query.with_entities(
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence.isnot(None),
+            Complaint.ai_confidence * 100 < 60
+        ),
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence * 100 >= 60,
+            Complaint.ai_confidence * 100 < 70
+        ),
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence * 100 >= 70,
+            Complaint.ai_confidence * 100 < 80
+        ),
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence * 100 >= 80,
+            Complaint.ai_confidence * 100 < 90
+        ),
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence * 100 >= 90,
+            Complaint.ai_confidence * 100 < 95
+        ),
+        func.count(Complaint.id).filter(
+            Complaint.ai_confidence * 100 >= 95
+        )
+    ).one()
+
+    confidence_distribution = [int(value or 0) for value in confidence_row]
 
     current_start = datetime.utcnow() - timedelta(days=days)
-    previous_query = apply_location_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id)
-    if category_id is not None: previous_query = previous_query.filter(Complaint.category_id == category_id)
-    if department_id is not None: previous_query = previous_query.filter(Complaint.department_id == department_id)
-    previous_complaints = previous_query.filter(Complaint.timestamp >= current_start - timedelta(days=days), Complaint.timestamp < current_start).all()
 
-    ai_insights = build_ai_insights(category_distribution, category_priority, complaints, previous_complaints, category_lookup)
+    previous_query = apply_location_filters(
+        db.query(Complaint),
+        country_id, state_id, district_id, taluka_id, village_id
+    )
+    if category_id is not None:
+        previous_query = previous_query.filter(Complaint.category_id == category_id)
+    if department_id is not None:
+        previous_query = previous_query.filter(Complaint.department_id == department_id)
 
-    curr_counts, prev_counts = {}, {}
-    for c in complaints: curr_counts[category_lookup.get(c.category_id, "Unknown")] = curr_counts.get(category_lookup.get(c.category_id, "Unknown"), 0) + 1
-    for c in previous_complaints: prev_counts[category_lookup.get(c.category_id, "Unknown")] = prev_counts.get(category_lookup.get(c.category_id, "Unknown"), 0) + 1
+    previous_rows = previous_query.filter(
+        Complaint.timestamp >= current_start - timedelta(days=days),
+        Complaint.timestamp < current_start
+    ).outerjoin(
+        ComplaintCategory,
+        Complaint.category_id == ComplaintCategory.id
+    ).with_entities(
+        func.coalesce(ComplaintCategory.name, "Unknown"),
+        func.count(Complaint.id)
+    ).group_by(
+        func.coalesce(ComplaintCategory.name, "Unknown")
+    ).all()
+
+    prev_counts = {category: int(count) for category, count in previous_rows}
+    curr_counts = {
+        row["name"]: int(row["count"])
+        for row in category_distribution
+    }
+
+    emerging = max(
+        [
+            {
+                "category": category,
+                "current": current,
+                "previous": prev_counts.get(category, 0),
+                "growth": round(
+                    (current - prev_counts.get(category, 0))
+                    / prev_counts.get(category, 0) * 100
+                    if prev_counts.get(category, 0) > 0
+                    else (100 if current > 0 else 0),
+                    2
+                )
+            }
+            for category, current in curr_counts.items()
+        ],
+        key=lambda item: item["growth"],
+        default=None
+    )
+
+    top_issue = category_distribution[0] if category_distribution else None
+    high_priority = max(
+        [
+            {
+                "category": category,
+                "high": values.get("high", 0),
+                "total": sum(values.values()),
+                "percentage": round(
+                    values.get("high", 0) / sum(values.values()) * 100, 2
+                )
+            }
+            for category, values in category_priority.items()
+            if sum(values.values()) > 0
+        ],
+        key=lambda item: item["percentage"],
+        default=None
+    )
+
+    ai_insights = {
+        "top_issue": {
+            "category": top_issue["name"] if top_issue else "No Data",
+            "count": top_issue["count"] if top_issue else 0
+        },
+        "emerging_issue": emerging if emerging else {
+            "category": "No Data", "current": 0, "previous": 0, "growth": 0
+        },
+        "high_priority_issue": high_priority if high_priority else {
+            "category": "No Data", "high": 0, "total": 0, "percentage": 0
+        }
+    }
 
     emerging_issues = []
-    for cat, cur in curr_counts.items():
-        prev = prev_counts.get(cat, 0)
-        change = ((cur - prev) / prev) * 100 if prev else (100 if cur else 0)
-        trend = "Increasing" if change > 0 else ("Declining" if change < 0 else "Stable")
-        emerging_issues.append({"issue": cat, "current": cur, "previous": prev, "change": round(change, 2), "trend": trend})
-    emerging_issues.sort(key=lambda x: x["change"], reverse=True)
+    for category, current in curr_counts.items():
+        previous = prev_counts.get(category, 0)
+        change = (
+            ((current - previous) / previous) * 100
+            if previous else (100 if current else 0)
+        )
+        trend = "Increasing" if change > 0 else (
+            "Declining" if change < 0 else "Stable"
+        )
+        emerging_issues.append({
+            "issue": category,
+            "current": current,
+            "previous": previous,
+            "change": round(change, 2),
+            "trend": trend
+        })
+    emerging_issues.sort(key=lambda item: item["change"], reverse=True)
 
     return {
         "generated_at": datetime.utcnow().isoformat(),
@@ -277,15 +464,29 @@ def get_map_data(request: Request, country_id: Optional[int] = None, state_id: O
         country_id, state_id, district_id, taluka_id, village_id,
         category_id, department_id, status, priority, days
     )
-    rows = query.filter(
-        Complaint.latitude.isnot(None),
-        Complaint.longitude.isnot(None)
-    ).all()
+    rows = (
+        query.outerjoin(
+            ComplaintCategory,
+            Complaint.category_id == ComplaintCategory.id
+        )
+        .with_entities(
+            Complaint.latitude,
+            Complaint.longitude,
+            Complaint.status,
+            Complaint.priority,
+            ComplaintCategory.name
+        )
+        .filter(
+            Complaint.latitude.isnot(None),
+            Complaint.longitude.isnot(None)
+        )
+        .all()
+    )
 
     cells = {}
-    for complaint in rows:
-        lat = round(float(complaint.latitude), 2)
-        lng = round(float(complaint.longitude), 2)
+    for latitude, longitude, status_value, priority_value, category_name in rows:
+        lat = round(float(latitude), 2)
+        lng = round(float(longitude), 2)
         key = (lat, lng)
 
         if key not in cells:
@@ -301,13 +502,9 @@ def get_map_data(request: Request, country_id: Optional[int] = None, state_id: O
         cell = cells[key]
         cell["count"] += 1
 
-        category = db.query(ComplaintCategory.name).filter(
-            ComplaintCategory.id == complaint.category_id
-        ).scalar() if complaint.category_id else None
-
-        category = category or "Unknown"
-        complaint_status = str(complaint.status or "Unknown")
-        complaint_priority = str(complaint.priority or "Unknown")
+        category = category_name or "Unknown"
+        complaint_status = str(status_value or "Unknown")
+        complaint_priority = str(priority_value or "Unknown")
 
         cell["categories"][category] = cell["categories"].get(category, 0) + 1
         cell["statuses"][complaint_status] = cell["statuses"].get(complaint_status, 0) + 1
