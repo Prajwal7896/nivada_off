@@ -14,6 +14,8 @@ from backend.app.security.rate_limit import limiter
 from backend.app.db.db import get_db
 from backend.app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
 
+from backend.app.db.cache import invalidate_complaint_cache_async
+
 router = APIRouter(prefix="/api", tags=["Complaints"])
 from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer
@@ -507,6 +509,7 @@ async def create_complaint(
 
     db.add(prediction_log)
     db.commit()
+    await invalidate_complaint_cache_async()
 
     return {
         "success": True,

@@ -16,6 +16,8 @@ from backend.app.db.model import (
     Village,
     Department
 )
+from backend.app.db.cache import cache_complaint_response
+
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parents[4]
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -369,6 +371,7 @@ def get_geography(
 
 
 @router.get("/api/user/map")
+@cache_complaint_response("user_map")
 def get_map_data(
     request: Request,
     country_id: int | None = None,

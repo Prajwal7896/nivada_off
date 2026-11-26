@@ -20,6 +20,8 @@ from backend.app.db.model import (
     ComplaintHistory
 )
 
+from backend.app.db.cache import invalidate_complaint_cache
+
 router = APIRouter()
 
 BASE_DIR = Path(__file__).resolve().parents[4]
@@ -336,6 +338,7 @@ def update_complaint_status(
 
     db.add(history)
     db.commit()
+    invalidate_complaint_cache()
     db.refresh(complaint)
 
     return {

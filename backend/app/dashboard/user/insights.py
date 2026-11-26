@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from backend.app.db.db import get_db
 from backend.app.db.model import User, Complaint, ComplaintCategory, Department, ComplaintHistory, Country, State, District, Taluka, Village
 
+from backend.app.db.cache import cache_complaint_response
+
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parents[4]
 FRONTEND_USER_DIR = BASE_DIR / "frontend" / "user"
@@ -146,6 +148,7 @@ def insights_page(request: Request):
     return FileResponse(FRONTEND_USER_DIR / ("insights.html" if request.session.get("user_id") else "user_login.html"))
 
 @router.get("/api/user/insights")
+@cache_complaint_response("user_insights")
 def get_insights(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, category_id: Optional[int] = None, department_id: Optional[int] = None, status: Optional[str] = None, priority: Optional[str] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
     validate_insight_filters(
@@ -261,6 +264,7 @@ def get_geography(request: Request, level: str, parent_id: Optional[int] = None,
     return [{"id": r[0], "name": r[1]} for r in query.order_by(model.name).all()]
 
 @router.get("/api/user/insights/map")
+@cache_complaint_response("user_insights_map")
 def get_map_data(request: Request, country_id: Optional[int] = None, state_id: Optional[int] = None, district_id: Optional[int] = None, taluka_id: Optional[int] = None, village_id: Optional[int] = None, category_id: Optional[int] = None, department_id: Optional[int] = None, status: Optional[str] = None, priority: Optional[str] = None, days: int = 30, db: Session = Depends(get_db)):
     get_current_user(request, db)
     validate_insight_filters(
