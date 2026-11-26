@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report a Civic Issue — NIVADA AI Platform</title>
+    <title>Report a Civic Issue â€” NIVADA AI Platform</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -216,52 +216,6 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Optional Image Upload -->
-                <div class="space-y-2 pt-2 border-t border-slate-800/80">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-sm font-bold text-white flex items-center space-x-2">
-                            <span class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xs font-bold">2</span>
-                            <span>Add Image <span class="text-xs font-normal text-slate-400">(Optional)</span></span>
-                        </label>
-                        <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
-                    </div>
-                    <p class="text-xs text-slate-400 pl-8">A photo helps authorities understand the issue more clearly (JPG, JPEG, PNG, WebP up to 5MB).</p>
-
-                    <div class="pt-2 pl-0 sm:pl-8">
-                        <!-- Dropzone / File Picker -->
-                        <div id="dropZone" onclick="triggerImageSelect()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
-                            class="border-2 border-dashed border-slate-700 hover:border-sky-500/60 rounded-2xl p-6 text-center bg-slate-900/50 hover:bg-slate-900/80 transition-all cursor-pointer group">
-                            <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" onchange="handleImageSelected(event)">
-                            <div id="uploadPlaceholder" class="space-y-2">
-                                <div class="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform shadow-lg">
-                                    <i class="fa-solid fa-camera text-xl"></i>
-                                </div>
-                                <p class="text-sm font-semibold text-slate-200">Drag & drop or <span class="text-sky-400 underline underline-offset-2">browse</span> to upload</p>
-                                <p class="text-xs text-slate-500">JPG, JPEG, PNG, WebP (Max 5 MB)</p>
-                            </div>
-
-                            <!-- Image Preview Area -->
-                            <div id="imagePreviewContainer" class="hidden space-y-3">
-                                <div class="relative w-full max-w-xs mx-auto h-40 rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-slate-950">
-                                    <img id="previewImg" src="" alt="Civic Issue Preview" class="w-full h-full object-cover">
-                                    <button type="button" onclick="removeSelectedImage(event)" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-colors" title="Remove Image">
-                                        <i class="fa-solid fa-xmark text-sm"></i>
-                                    </button>
-                                </div>
-                                <div class="flex items-center justify-center space-x-4 text-xs text-slate-300">
-                                    <span id="fileNameDisplay" class="font-medium truncate max-w-[200px]">issue_photo.jpg</span>
-                                    <span id="fileSizeDisplay" class="text-slate-500">1.8 MB</span>
-                                    <button type="button" onclick="removeSelectedImage(event)" class="text-rose-400 hover:text-rose-300 font-semibold underline">Remove Image</button>
-                                </div>
-                            </div>
-                        </div>
-                        <p id="imageError" class="text-xs text-rose-400 hidden mt-1.5 pl-1 flex items-center space-x-1">
-                            <i class="fa-solid fa-circle-exclamation"></i>
-                            <span>Please upload a JPG, PNG, JPEG, or WebP image under 5 MB.</span>
-                        </p>
-                    </div>
-                </div>
-
                 <!-- Section 3: Complaint Location -->
                 <div class="space-y-3 pt-2 border-t border-slate-800/80">
                     <div class="flex items-center justify-between">
@@ -301,7 +255,7 @@
                                     <div>
                                         <span class="text-xs uppercase tracking-wider text-emerald-400 font-semibold block">Location Selected</span>
                                         <p id="confirmedAddressText" class="text-sm font-medium text-white mt-0.5">Akurdi, Pune, Maharashtra</p>
-                                        <p id="coordinatesText" class="text-xs text-slate-500 font-mono mt-1">Latitude: 18.6512° N, Longitude: 73.7684° E</p>
+                                        <p id="coordinatesText" class="text-xs text-slate-500 font-mono mt-1">Latitude: 18.6512Â° N, Longitude: 73.7684Â° E</p>
                                     </div>
                                 </div>
                                 <span class="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">GPS Verified</span>
@@ -330,14 +284,10 @@
                             <i class="fa-solid fa-clipboard-check text-sky-400"></i>
                             <span>Complaint Ready to Submit</span>
                         </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                             <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                                 <span id="summaryDescStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
                                 <span class="text-slate-300 font-medium">Description: <span id="sumDescText" class="text-slate-500 font-normal">Pending</span></span>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                                <span id="summaryImgStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                                <span class="text-slate-300 font-medium">Image: <span id="sumImgText" class="text-slate-500 font-normal">Not added</span></span>
                             </div>
                             <div class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                                 <span id="summaryLocStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
@@ -418,7 +368,6 @@
     <script>
         let complaintState = {
             description: "",
-            imageFile: null,
             address: "",
             latitude: null,
             longitude: null
@@ -592,180 +541,6 @@
         }
 
 
-        function triggerImageSelect() {
-            document.getElementById("imageInput").click();
-        }
-
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            event.currentTarget.classList.add(
-                "border-sky-500",
-                "bg-slate-900/90"
-            );
-        }
-
-
-        function handleDragLeave(event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            event.currentTarget.classList.remove(
-                "border-sky-500",
-                "bg-slate-900/90"
-            );
-        }
-
-
-        function handleDrop(event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            event.currentTarget.classList.remove(
-                "border-sky-500",
-                "bg-slate-900/90"
-            );
-
-            const files = event.dataTransfer.files;
-
-            if (files.length > 0) {
-                processImageFile(files[0]);
-            }
-        }
-
-
-        function handleImageSelected(event) {
-            const file = event.target.files[0];
-
-            if (file) {
-                processImageFile(file);
-            }
-        }
-
-
-        function processImageFile(file) {
-
-            const error =
-                document.getElementById("imageError");
-
-            const dot =
-                document.getElementById("summaryImgStatus");
-
-            const text =
-                document.getElementById("sumImgText");
-
-            const allowedTypes = [
-                "image/jpeg",
-                "image/jpg",
-                "image/png",
-                "image/webp"
-            ];
-
-            if (!allowedTypes.includes(file.type)) {
-
-                error.classList.remove("hidden");
-
-                error.querySelector("span").textContent =
-                    "Please upload a JPG, PNG, JPEG, or WebP image.";
-
-                return;
-            }
-
-            if (file.size > 5 * 1024 * 1024) {
-
-                error.classList.remove("hidden");
-
-                error.querySelector("span").textContent =
-                    "Image size exceeds 5 MB limit.";
-
-                return;
-            }
-
-            error.classList.add("hidden");
-
-            complaintState.imageFile = file;
-
-            const reader = new FileReader();
-
-            reader.onload = function(event) {
-
-                document.getElementById(
-                    "previewImg"
-                ).src = event.target.result;
-
-                document.getElementById(
-                    "uploadPlaceholder"
-                ).classList.add("hidden");
-
-                document.getElementById(
-                    "imagePreviewContainer"
-                ).classList.remove("hidden");
-
-                document.getElementById(
-                    "fileNameDisplay"
-                ).textContent = file.name;
-
-                document.getElementById(
-                    "fileSizeDisplay"
-                ).textContent =
-                    (file.size / (1024 * 1024)).toFixed(1) +
-                    " MB";
-
-                dot.className =
-                    "w-2 h-2 rounded-full bg-emerald-500";
-
-                text.textContent = "Attached";
-
-                text.className =
-                    "text-emerald-400 font-medium";
-            };
-
-            reader.readAsDataURL(file);
-        }
-
-
-        function removeSelectedImage(event) {
-
-            if (event) {
-                event.stopPropagation();
-            }
-
-            complaintState.imageFile = null;
-
-            document.getElementById(
-                "imageInput"
-            ).value = "";
-
-            document.getElementById(
-                "previewImg"
-            ).src = "";
-
-            document.getElementById(
-                "imagePreviewContainer"
-            ).classList.add("hidden");
-
-            document.getElementById(
-                "uploadPlaceholder"
-            ).classList.remove("hidden");
-
-            const dot =
-                document.getElementById("summaryImgStatus");
-
-            const text =
-                document.getElementById("sumImgText");
-
-            dot.className =
-                "w-2 h-2 rounded-full bg-slate-500";
-
-            text.textContent = "Not added";
-
-            text.className =
-                "text-slate-500 font-normal";
-        }
-
-
         function validateLocation(value) {
 
             const trimmed = value.trim();
@@ -843,7 +618,7 @@
                 document.getElementById(
                     "coordinatesText"
                 ).textContent =
-                    `Latitude: ${complaintState.latitude.toFixed(6)}° N, Longitude: ${complaintState.longitude.toFixed(6)}° E`;
+                    `Latitude: ${complaintState.latitude.toFixed(6)}Â° N, Longitude: ${complaintState.longitude.toFixed(6)}Â° E`;
             }
         }
 
@@ -905,7 +680,7 @@
                     document.getElementById(
                         "coordinatesText"
                     ).textContent =
-                        `Latitude: ${lat.toFixed(6)}° N, Longitude: ${lng.toFixed(6)}° E`;
+                        `Latitude: ${lat.toFixed(6)}Â° N, Longitude: ${lng.toFixed(6)}Â° E`;
 
                     btnText.textContent =
                         "Use My Current Location";
@@ -1058,14 +833,6 @@
                     );
                 }
 
-                if (complaintState.imageFile) {
-
-                    formData.append(
-                        "image",
-                        complaintState.imageFile
-                    );
-                }
-
                 const response = await fetch(
                     "/api/complaints",
                     {
@@ -1175,8 +942,7 @@
 
             complaintState = {
                 description: "",
-                imageFile: null,
-                address: "",
+                    address: "",
                 latitude: null,
                 longitude: null
             };
@@ -1202,7 +968,6 @@
                 "border-rose-500"
             );
 
-            removeSelectedImage();
 
             document.getElementById(
                 "locationConfirmationCard"
@@ -1230,20 +995,6 @@
 
             document.getElementById(
                 "sumDescText"
-            ).className =
-                "text-slate-500 font-normal";
-
-            document.getElementById(
-                "summaryImgStatus"
-            ).className =
-                "w-2 h-2 rounded-full bg-slate-500";
-
-            document.getElementById(
-                "sumImgText"
-            ).textContent = "Not added";
-
-            document.getElementById(
-                "sumImgText"
             ).className =
                 "text-slate-500 font-normal";
 
