@@ -289,3 +289,14 @@ class AuditLog(Base):
     entity_id = Column(Integer)
     description = Column(Text)
     timestamp = Column(TIMESTAMP, server_default=func.now())
+class WorkerHeartbeat(Base):
+    __tablename__ = "worker_heartbeats"
+
+    worker_id = Column(String(100), primary_key=True)
+    hostname = Column(String(255), nullable=False)
+    process_id = Column(Integer, nullable=False)
+    status = Column(String(20), nullable=False, default="running")
+    started_at = Column(DateTime, nullable=False, server_default=func.now())
+    last_heartbeat_at = Column(DateTime, nullable=False, server_default=func.now())
+    last_success_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)

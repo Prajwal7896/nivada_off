@@ -2,6 +2,8 @@
 import logging
 import os
 import time
+import socket
+from datetime import datetime
 
 from sqlalchemy import func
 
@@ -12,6 +14,7 @@ from backend.app.db.model import (
     ComplaintCategory,
     Department,
     PredictionLog,
+    WorkerHeartbeat,
 )
 from backend.app.db.redis_client import connect_redis, close_redis
 from backend.app.db.cache import invalidate_complaint_cache_async
@@ -33,6 +36,38 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("nivada.ai_worker")
+
+WORKER_HOSTNAME = socket.gethostname()
+WORKER_ID = f"{WORKER_HOSTNAME}-{os.getpid()}"
+
+
+def update_worker_heartbeat(status="running", success=False, error=None):
+    now = datetime.utcnow()
+
+    with SessionLocal() as db:
+        heartbeat = db.get(WorkerHeartbeat, WORKER_ID)
+
+        if heartbeat is None:
+            heartbeat = WorkerHeartbeat(
+                worker_id=WORKER_ID,
+                hostname=WORKER_HOSTNAME,
+                process_id=os.getpid(),
+                status=status,
+                started_at=now,
+                last_heartbeat_at=now,
+            )
+            db.add(heartbeat)
+        else:
+            heartbeat.status = status
+            heartbeat.last_heartbeat_at = now
+
+        if success:
+            heartbeat.last_success_at = now
+            heartbeat.last_error = None
+        elif error:
+            heartbeat.last_error = str(error)[:2000]
+
+        db.commit()
 
 
 def process_job(job_data: dict) -> bool:
@@ -179,34 +214,108 @@ def process_job(job_data: dict) -> bool:
 
 
 async def run_worker():
-    redis_connected = await connect_redis()
+    try:
+        redis_connected = await connect_redis()
+        if not redis_connected:
+            logger.warning(
+                "Redis unavailable; worker will continue without cache invalidation"
+            )
+    except Exception:
+        logger.exception("Redis connection failed; continuing without Redis")
 
-    if not redis_connected:
-        logger.warning(
-            "Redis unavailable; worker will continue without cache invalidation"
-        )
-
-    logger.info("NIVADA AI worker started")
+    logger.info("NIVADA AI worker started: %s", WORKER_ID)
 
     try:
+        try:
+            await asyncio.to_thread(update_worker_heartbeat)
+        except Exception:
+            logger.exception("Initial worker heartbeat failed")
+
+        last_heartbeat = time.monotonic()
+
         while True:
-            job = claim_next_job()
+            if time.monotonic() - last_heartbeat >= 15:
+                try:
+                    await asyncio.to_thread(update_worker_heartbeat)
+                except Exception:
+                    logger.exception("Worker heartbeat update failed")
+                last_heartbeat = time.monotonic()
+
+            try:
+                job = claim_next_job()
+            except Exception as exc:
+                logger.exception(
+                    "Could not claim an AI job; retrying after 5 seconds"
+                )
+                try:
+                    await asyncio.to_thread(
+                        update_worker_heartbeat, error=str(exc)
+                    )
+                except Exception:
+                    logger.exception("Could not record worker database error")
+                await asyncio.sleep(5)
+                continue
 
             if job is None:
                 await asyncio.sleep(POLL_INTERVAL_SECONDS)
                 continue
 
-            success = await asyncio.to_thread(process_job, job)
+            try:
+                success = await asyncio.to_thread(process_job, job)
+            except Exception as exc:
+                logger.exception(
+                    "Unexpected worker error while processing job %s",
+                    job.get("job_id")
+                )
+                try:
+                    await asyncio.to_thread(
+                        update_worker_heartbeat, error=str(exc)
+                    )
+                except Exception:
+                    logger.exception("Could not record worker processing error")
+                await asyncio.sleep(5)
+                continue
 
             if success:
-                await invalidate_complaint_cache_async()
+                try:
+                    await asyncio.to_thread(
+                        update_worker_heartbeat, success=True
+                    )
+                except Exception:
+                    logger.exception("Could not record successful worker job")
+
+                try:
+                    await invalidate_complaint_cache_async()
+                except Exception:
+                    logger.exception(
+                        "Cache invalidation failed; worker will continue"
+                    )
+            else:
+                try:
+                    await asyncio.to_thread(
+                        update_worker_heartbeat,
+                        error="Job processing failed; retry/failure handling was invoked."
+                    )
+                except Exception:
+                    logger.exception("Could not record worker job failure")
 
     except asyncio.CancelledError:
         logger.info("Worker shutdown requested")
         raise
 
     finally:
-        await close_redis()
+        try:
+            await asyncio.to_thread(
+                update_worker_heartbeat, status="stopped"
+            )
+        except Exception:
+            logger.exception("Could not mark worker as stopped")
+
+        try:
+            await close_redis()
+        except Exception:
+            logger.exception("Redis shutdown failed")
+
         logger.info("NIVADA AI worker stopped")
 
 
