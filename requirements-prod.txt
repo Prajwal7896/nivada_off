@@ -26,3 +26,5 @@ redis==6.4.0
 slowapi==0.1.10
 
 pwdlib[argon2]
+
+alembic
