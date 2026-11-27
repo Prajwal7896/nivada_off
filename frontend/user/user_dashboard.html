@@ -403,6 +403,11 @@
                 </div>
 
                 <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span class="text-xs text-slate-400 block mb-1">AI Classification</span>
+                    <span id="detail-ai-status" class="font-semibold text-cyan-400">Queued for AI classification</span>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
                     <span class="text-xs text-slate-400 block mb-1">Full Description</span>
                     <p id="detail-description" class="text-slate-300 leading-relaxed mt-1 whitespace-pre-wrap"></p>
                 </div>
@@ -634,6 +639,9 @@
                                 <div class="text-xs text-cyan-400 font-mono mt-1">
                                     ${escapeHtml(number)}
                                 </div>
+                                <div class="text-[11px] text-slate-400 mt-1">
+                                    ${escapeHtml(getAIStatusLabel(complaint.ai_status))}
+                                </div>
                             </button>
                         </td>
                         <td class="py-5 px-6 text-slate-300">
@@ -666,6 +674,9 @@
                                 <div class="text-xs text-cyan-400 font-mono mt-1">
                                     ${escapeHtml(number)}
                                 </div>
+                                <div class="text-[11px] text-slate-400 mt-1">
+                                    ${escapeHtml(getAIStatusLabel(complaint.ai_status))}
+                                </div>
                             </button>
                             <button
                                 onclick="openDeleteModal(${id})"
@@ -688,6 +699,10 @@
                             <div>
                                 <span class="text-slate-500">Status</span>
                                 <div class="mt-1">${getStatusBadge(status)}</div>
+                            </div>
+                            <div>
+                                <span class="text-slate-500">AI Classification</span>
+                                <div class="text-cyan-400 mt-1">${escapeHtml(getAIStatusLabel(complaint.ai_status))}</div>
                             </div>
                         </div>
                     </div>
@@ -866,6 +881,17 @@
                 .replace(/'/g, "&#039;");
         }
 
+        function getAIStatusLabel(status) {
+            const labels = {
+                queued: "Queued for AI classification",
+                processing: "AI classification in progress",
+                completed: "AI classification completed",
+                failed: "AI classification failed"
+            };
+            return labels[String(status || "").toLowerCase()]
+                || "AI status unavailable";
+        }
+
         function openDetailsModal(complaintId) {
             const complaint = complaintsData.find(
                 item => Number(item.id) === Number(complaintId)
@@ -890,6 +916,9 @@
                     complaint.timestamp ||
                     complaint.created_at
                 );
+
+            document.getElementById("detail-ai-status").textContent =
+                getAIStatusLabel(complaint.ai_status);
 
             document.getElementById("detail-description").textContent =
                 complaint.description || "No description available";

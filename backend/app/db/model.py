@@ -131,8 +131,58 @@ class Complaint(Base):
     status = Column(String, default="pending")
     priority = Column(String, default="medium")
     ai_confidence = Column(Float)
+    ai_status = Column(
+        String(20),
+        nullable=False,
+        default="queued",
+        server_default="queued"
+    )
     timestamp = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class ComplaintAIJob(Base):
+    __tablename__ = "complaint_ai_jobs"
+
+    __table_args__ = (
+        Index(
+            "ix_complaint_ai_jobs_claim",
+            "status",
+            "next_retry_at",
+            "created_at"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    complaint_id = Column(
+        Integer,
+        ForeignKey("complaints.id"),
+        nullable=False,
+        unique=True
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="queued",
+        server_default="queued"
+    )
+
+    attempts = Column(Integer, nullable=False, default=0, server_default="0")
+    max_attempts = Column(Integer, nullable=False, default=5, server_default="5")
+    next_retry_at = Column(
+        TIMESTAMP,
+        nullable=False,
+        server_default=func.now()
+    )
+    locked_at = Column(TIMESTAMP, nullable=True)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(
+        TIMESTAMP,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
 
 
 class ComplaintEvidence(Base):

@@ -1462,7 +1462,7 @@ function renderComplaintsTable(data) {
                     </div>
 
                     <div class="text-[10px] text-nivada-500 mt-1">
-                        ${escapeHtml(complaint.category || "Uncategorized")}
+                        ${escapeHtml(complaint.category || (complaint.ai_status === "failed" ? "AI classification failed" : "AI classification processing"))}
                     </div>
 
                 </td>
@@ -1550,7 +1550,7 @@ async function openComplaintModal(complaintId) {
             complaintNumber(complaint.id);
 
         document.getElementById("modal-category").textContent =
-            complaint.category || "Uncategorized";
+            complaint.category || (complaint.ai_status === "failed" ? "AI classification failed" : "AI classification processing");
 
         document.getElementById("modal-status-badge").textContent =
             formatStatus(complaint.status);
@@ -1594,13 +1594,19 @@ async function openComplaintModal(complaintId) {
         } else {
 
             document.getElementById("modal-ai-confidence").textContent =
-                "Confidence unavailable";
+                complaint.ai_status === "failed"
+                    ? "Classification failed"
+                    : "Available after classification";
         }
 
         document.getElementById("modal-ai-summary").textContent =
             complaint.category
                 ? `NIVADA classified this complaint under ${complaint.category}.`
-                : "AI analysis is unavailable.";
+                : complaint.ai_status === "failed"
+                    ? "AI classification failed. This complaint requires review."
+                    : complaint.ai_status === "processing"
+                        ? "NIVADA is currently analyzing this complaint."
+                        : "This complaint is queued for AI classification.";
 
         if (complaint.image_path) {
 

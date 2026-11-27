@@ -12,7 +12,7 @@ import time
 from backend.app.complaint.decode import get_admin_location
 from backend.app.security.rate_limit import limiter
 from backend.app.db.db import get_db
-from backend.app.db.model import User, Complaint, ComplaintCategory, Department, Admin , PredictionLog
+from backend.app.db.model import User, Complaint, ComplaintAIJob, ComplaintCategory, Department, Admin, PredictionLog
 
 from backend.app.db.cache import invalidate_complaint_cache_async
 
@@ -346,65 +346,6 @@ async def create_complaint(
         taluka_id = location["taluka_id"]
         village_id = location["village_id"]
 
-    category_name, confidence = predict_category(
-        description
-    )
-
-    category = db.query(ComplaintCategory).filter(
-        func.lower(ComplaintCategory.name)
-        == category_name.lower()
-    ).first()
-
-    if not category:
-        if category_name == "Other":
-            category = db.query(ComplaintCategory).filter(
-                func.lower(ComplaintCategory.name) == "other"
-            ).first()
-
-        if not category:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Category '{category_name}' does not exist in database"
-            )
-
-    department_name = get_department_name(
-        category.name
-    )
-
-    if not department_name:
-        raise HTTPException(
-            status_code=500,
-            detail=f"No department mapping found for category '{category.name}'"
-        )
-
-    department = db.query(Department).filter(
-        func.lower(Department.name)
-        == department_name.lower()
-    ).first()
-
-    if not department:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Department '{department_name}' does not exist in database"
-        )
-
-    assigned_admin = find_assigned_admin(
-        db=db,
-        department_id=department.id,
-        village_id=village_id,
-        taluka_id=taluka_id,
-        district_id=district_id
-    )
-
-    print(
-        "ASSIGNMENT:",
-        "department=", department.id,
-        "village=", village_id,
-        "taluka=", taluka_id,
-        "district=", district_id,
-        "admin=", assigned_admin.id if assigned_admin else None
-    )
-
     image_path = None
 
     if image:
@@ -475,13 +416,9 @@ async def create_complaint(
 
     complaint = Complaint(
         user_id=user_id,
-        category_id=category.id,
-        department_id=department.id,
-        assigned_admin_id=(
-            assigned_admin.id
-            if assigned_admin
-            else None
-        ),
+        category_id=None,
+        department_id=None,
+        assigned_admin_id=None,
         complaint_text=description,
         address=address,
         latitude=latitude,
@@ -494,43 +431,55 @@ async def create_complaint(
         image_path=image_path,
         status="pending",
         priority="medium",
-        ai_confidence=confidence
+        ai_confidence=None,
+        ai_status="queued"
     )
 
-    db.add(complaint)
-    db.commit()
-    db.refresh(complaint)
-    prediction_log = PredictionLog(
-        complaint_id=complaint.id,
-        predicted_category=category.name,
-        confidence=confidence,
-        model_version="2"
-    )
+    try:
+        db.add(complaint)
+        db.flush()
 
-    db.add(prediction_log)
-    db.commit()
+        ai_job = ComplaintAIJob(
+            complaint_id=complaint.id,
+            status="queued",
+            attempts=0,
+            max_attempts=5
+        )
+        db.add(ai_job)
+
+        db.commit()
+        db.refresh(complaint)
+
+    except Exception:
+        db.rollback()
+
+        if image_path and os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+            except OSError:
+                pass
+
+        raise
+
     await invalidate_complaint_cache_async()
 
     return {
         "success": True,
         "complaint_id": complaint.id,
         "complaint_number": f"NVD-{complaint.id:06d}",
-        "category": category.name,
-        "category_id": category.id,
-        "department": department.name,
-        "department_id": department.id,
-        "assigned_admin_id": (
-            assigned_admin.id
-            if assigned_admin
-            else None
-        ),
+        "category": None,
+        "category_id": None,
+        "department": None,
+        "department_id": None,
+        "assigned_admin_id": None,
         "country_id": country_id,
         "state_id": state_id,
         "district_id": district_id,
         "taluka_id": taluka_id,
         "village_id": village_id,
-        "confidence": round(confidence, 4),
-        "status": complaint.status
+        "confidence": None,
+        "status": complaint.status,
+        "ai_status": complaint.ai_status
     }
 
 

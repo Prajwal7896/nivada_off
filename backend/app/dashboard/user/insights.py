@@ -165,7 +165,7 @@ def get_insights(request: Request, country_id: Optional[int] = None, state_id: O
     base_query = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, None, status, priority, days)
     current_time = datetime.utcnow()
     
-    category_rows = base_query.join(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(ComplaintCategory.id, ComplaintCategory.name, func.count(Complaint.id)).group_by(ComplaintCategory.id, ComplaintCategory.name).order_by(func.count(Complaint.id).desc()).all()
+    category_rows = base_query.outerjoin(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(ComplaintCategory.id, func.coalesce(ComplaintCategory.name, "Processing"), func.count(Complaint.id)).group_by(ComplaintCategory.id, ComplaintCategory.name).order_by(func.count(Complaint.id).desc()).all()
     category_distribution = [{"id": r[0], "name": r[1], "count": r[2]} for r in category_rows]
 
     summary_row = base_query.with_entities(
@@ -210,7 +210,7 @@ def get_insights(request: Request, country_id: Optional[int] = None, state_id: O
     for priority_name, count in priority_rows:
         priority_distribution[priority_name] = int(count)
 
-    department_rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, department_id, status, priority, days).join(Department, Complaint.department_id == Department.id).with_entities(Department.id, Department.name, func.count(Complaint.id)).group_by(Department.id, Department.name).order_by(func.count(Complaint.id).desc()).all()
+    department_rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, category_id, department_id, status, priority, days).outerjoin(Department, Complaint.department_id == Department.id).with_entities(Department.id, func.coalesce(Department.name, "Processing"), func.count(Complaint.id)).group_by(Department.id, Department.name).order_by(func.count(Complaint.id).desc()).all()
     department_distribution = [{"id": r[0], "name": r[1], "count": r[2]} for r in department_rows]
 
     trend_rows = base_query.with_entities(func.date_trunc("day", Complaint.timestamp).label("date"), func.count(Complaint.id)).group_by("date").order_by("date").all()
@@ -531,7 +531,7 @@ def category_status_matrix(request: Request, country_id: Optional[int] = None, s
         country_id, state_id, district_id, taluka_id, village_id,
         days=days
     )
-    rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, days=days).join(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(ComplaintCategory.name, Complaint.status, func.count(Complaint.id)).group_by(ComplaintCategory.name, Complaint.status).all()
+    rows = apply_complaint_filters(db.query(Complaint), country_id, state_id, district_id, taluka_id, village_id, days=days).outerjoin(ComplaintCategory, Complaint.category_id == ComplaintCategory.id).with_entities(func.coalesce(ComplaintCategory.name, "Processing"), Complaint.status, func.count(Complaint.id)).group_by(ComplaintCategory.name, Complaint.status).all()
     result = {}
     for category, status, count in rows:
         result.setdefault(category, {"pending": 0, "in_progress": 0, "resolved": 0, "rejected": 0})
