@@ -127,7 +127,7 @@ async def security_headers(request, call_next):
     )
 
     response.headers["Permissions-Policy"] = (
-        "camera=(), microphone=(), geolocation=()"
+        "camera=(), microphone=(), geolocation=(self)"
     )
 
     if os.getenv("APP_ENV") == "production":
